@@ -9,3 +9,5 @@ template/template.toc
 .vscode
 .vscode/** */
 template.log
+*.aux
+*.toc
