@@ -1,0 +1,79 @@
+% PREAMBLE
+\usepackage[utf8]{inputenc}
+\usepackage{amsfonts}
+\iftheory
+\usepackage{amsmath}
+\fi
+\usepackage{amssymb}
+\usepackage{cite}
+\usepackage[
+	n,
+	operators,
+	advantage,
+	sets,
+	adversary,
+	landau,
+	probability,
+	notions,	
+	logic,
+	ff,
+	mm,
+	primitives,
+	events,
+	complexity,
+	asymptotics,
+	keys]{cryptocode}
+\usepackage{enumitem}
+\setlist{nosep}
+\iftheory
+\usepackage[margin=1in]{geometry}
+\fi
+\usepackage[hidelinks]{hyperref}
+\usepackage{todonotes}
+
+\usepackage{circuitikz}
+
+\usepackage{lscape}
+\usepackage{mathtools}
+
+\iftheory
+\usepackage{amsthm}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{claim}{Claim}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+\newtheoremstyle{TheoremNum}
+        {\topsep}{\topsep}    %%% space between body and thm
+        {\itshape}                 %%% Thm body font
+        {}                              %%% Indent amount (empty = no indent)
+        {\bfseries}                %%% Thm head font
+        {.}                             %%% Punctuation after thm head
+        { }                             %%% Space after thm head
+        {\thmname{#1}\thmnote{ \bfseries #3}}%%% Thm head spec
+%\theoremstyle{TheoremNum}
+%\newtheorem{thmn}{Informal Theorem}
+\else
+\fi
+
+%\renewtheorem{claim}{Claim}
+
+
+% MACROS
+
+% ~~ General
+
+%\DeclareMathOperator*{\argmax}{arg\,max}
+%\DeclareMathOperator*{\argmin}{arg\,min}
+
+\renewcommand{\secpar}{\lambda}
+\renewcommand{\secparam}{1^\lambda}
+
+
+% ~~ Formatting
+\definecolor{hybrid}{HTML}{0076BA}
+
+\usepackage{caption} 
+\captionsetup[table]{skip=10pt}
