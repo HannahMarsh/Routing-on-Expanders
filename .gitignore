@@ -6,5 +6,6 @@ template/template.log
 template/template.out
 template/template.synctex.gz
 template/template.toc
-template/template.pdf
-template/template.pdf
+.vscode
+.vscode/** */
+template.log
