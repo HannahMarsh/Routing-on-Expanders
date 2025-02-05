@@ -20,10 +20,10 @@ Megumi Ando\iftheory\thanks{Computer Science Department, Tufts University, {\tt 
 Anna Lysyanskaya\iftheory\thanks{Computer Science Department, Brown University, {\tt anna@cs.brown.edu}}\fi
 \and 
 % Author 3
-Hannah Marsh\iftheory\thanks{Computer Science Department, Tufts University, {\tt hmarsh03@cs.tufts.edu}}\fi
+Hannah Marsh\iftheory\thanks{Computer Science Department, Tufts University, {\tt hannah@cs.tufts.edu}}\fi
 \and
 % Author 3
-Eli Upfal\iftheory\thanks{Computer Science Department, Brown University, {\tt eli@cs.brown.edu}}\fi
+Eli Upfal\iftheory\thanks{Computer Science Department, Brown University, {\tt eli\_upfal@brown.edu}}\fi
 }
 
 \newcommand{\institutelist}{}
@@ -31,7 +31,7 @@ Eli Upfal\iftheory\thanks{Computer Science Department, Brown University, {\tt el
 
 \newcommand{\titlelist}{\iftheory\begin{bf}\fi
 % title
-Onion Routing on Sparse Mix-Networks
+Onion Routing on Sparse Distributed Networks
 \iftheory\end{bf}\fi}
 
 % Path to stylefiles
@@ -85,11 +85,9 @@ Onion Routing on Sparse Mix-Networks
 % ABSTRACT
 \vspace{-8mm}
 \begin{abstract}
+A network adversary is an entity with complete visibility of all traffic flowing through a distributed network. Even when a message’s content is encrypted, a network adversary can analyze traffic patterns to infer who is communicating with whom—a form of surveillance that can be exploited for control and influence. Anonymous communication protocols defend against this by introducing uncertainty in how messages traverse the network. \textit{Onion routing} is a widely adopted approach that achieves anonymity by encrypting messages in layers and relaying them through multiple intermediaries. Prior work by Ando, Lysyanskaya, and Upfal [ICALP 2018] showed that when intermediate nodes are selected uniformly at random in a complete-graph topology, the variation distance between a network adversary’s view of any two communication patterns decays faster than any inverse polynomial in the security parameter. This strong, provable definition of anonymity, known as \textit{statistical privacy}, holds when onions are batch-processed with a polylogarithmic number of other onions for a polylogarithmic number of rounds (in the security parameter).
 
-Onion routing is a practical and widely used method for establishing anonymous communication channels. It works by routing ``onions'' through a mixnet of intermediaries, where each onion is formed by wrapping a private message in multiple layers of encryption. As these messages traverse the network, it becomes harder for an adversary to trace them back to their original senders. In previous work~\cite{ICALP:AndLysUpf18}, it was shown that statistical privacy can be achieved against the passive adversary when each intermediary is chosen uniformly at random from all nodes. However, this requires a complete network topology where the number of direct connections between servers grows quadratically, $O(n^2)$, with the size of the network. 
-
-In this paper, we investigate a scalable alternative that offers comparable anonymity while only requiring $O(n)$ network edges. We propose $\Pi_x$, a new protocol that assumes an \textit{expander} topology---a class of graphs known for their strong connectivity despite being sparse. With this setup, each mix-node has its own probability distribution (based on its limited connections to other nodes) that clients sample from to determine the next hop in a routing path. We show that if these distributions are configured to resemble an expander graph, our protocol can match the anonymity guarantees of a fully connected mixnet, making it a more suitable choice for large-scale communication networks.
-
+We extend this result to sparse networks modeled as $r$-regular expander graphs, where each server connects to only a small constant ($r > 2$) number of neighbors. By routing onions via independent, fixed-length random walks, we show that statistical privacy can still be achieved against a network adversary, with both server load and path length remaining polylogarithmic in the security parameter. This result demonstrates that practical and provably secure communication is possible even in sparsely connected distributed networks.
 
 \iftheory
 \vfill
@@ -105,7 +103,6 @@ In this paper, we investigate a scalable alternative that offers comparable anon
 \iftheory
 \newpage
 \thispagestyle{empty}
-\tableofcontents
 \newpage
 \setcounter{page}{1}
 \fi
@@ -124,15 +121,15 @@ In this paper, we investigate a scalable alternative that offers comparable anon
 
 \section{Introduction}
 
-Protecting user privacy in communication is a growing challenge in modern networks. Anonymous communication channels are essential for preventing adversaries from linking users to their activities, whether it's for online privacy, whistleblowing, or secure voting. One well-known method for achieving anonymous communication is \textit{onion routing}, where messages are wrapped in layers of encryption and routed through a series of intermediaries, called mix-nodes, before reaching the intended recipient. Each intermediary decrypts a single layer, revealing only the next node in the chain and the ciphertext to forward. As an onion passes through the mixnet, it becomes increasingly difficult for an adversary to trace it back to the original sender. 
+Protecting user privacy in communication is a growing challenge in modern networks. Anonymous communication channels are essential for preventing adversaries from linking users to their activities, whether it's for online privacy, whistleblowing, or secure voting. One well-known method for achieving anonymous communication is \textit{onion routing}, where messages are wrapped in layers of encryption and routed through a series of intermediaries before reaching the intended recipient. Each intermediary decrypts a single layer, revealing only the next node in the chain and the ciphertext to forward. 
 
-Onion routing is widely adopted due to its simplicity and ability to tolerate failures in a subset of mix-nodes. Systems like Tor, which implement onion routing, are used by millions of people daily to protect their online activities. However, despite its widespread use, the security guarantees of onion routing are not fully understood, especially in the face of powerful adversaries.
+Onion routing is widely adopted due to its simplicity and ability to tolerate failures in a subset of nodes. Systems like Tor \cite{tor}, which implement onion routing, are used by millions of people daily to protect their online activities. However, despite its widespread use, the security guarantees of onion routing are not fully understood, especially in the face of powerful adversaries.
 
 Previous work, such as the protocol $\Pi_p$ introduced in~\cite{ICALP:AndLysUpf18}, shows that \textit{statistical privacy} can be achieved against a passive adversary if the intermediaries in the mixnet are chosen uniformly at random from all available nodes in a fully connected network. However, this approach relies on a complete graph, where every node can communicate directly with every other node, leading to a quadratic increase in the number of network edges as the system scales to accommodate more mixnodes. Thus the fully connected mixnet is inefficient for large systems.
 
-We present the design, implementation, and evaluation of $\Pi_x$, a new protocol that aims to provide similar levels of anonymity while requiring significantly fewer network edges. Instead of relying on a fully connected mixnet, $\Pi_x$ assumes an \textit{expander} topology, a class of sparse graphs that maintain strong connectivity even with very few edges. In our approach, each mix-node has a probability distribution based on its connections to a fixed number of other nodes, from which clients select the next hop in their routing path. We demonstrate that, by configuring these distributions to approximate an expander graph, $\Pi_x$ can provide the same anonymity guarantees as a fully connected network but with only $O(n)$ edges.
+We present the design and evaluation of $\Pi_x$, a new protocol that aims to provide similar levels of anonymity while requiring significantly fewer network edges. Instead of relying on a fully connected mixnet, $\Pi_x$ assumes an \textit{expander} topology, a class of sparse graphs that maintain strong connectivity even with very few edges. In our approach, each mix-node has a probability distribution based on its connections to a fixed number of other nodes, from which clients select the next hop in their routing path. We demonstrate that, by configuring these distributions to approximate an expander graph, $\Pi_x$ can provide the same anonymity guarantees as a fully connected network but with only $O(n)$ edges.
 
-Through the design and evaluation of $\Pi_x$, we demonstrate that expander graphs can be a practical foundation for large-scale anonymous communication systems, providing a balance between efficiency and privacy.
+We demonstrate that expander graphs can be a practical foundation for large-scale anonymous communication systems, providing a balance between efficiency and privacy.
 
 \subsection{Progression of Goals}
 
@@ -171,10 +168,8 @@ $$
 
 \subsection{Threat Model}
 
-Let $\Pi$ be a protocol, and let $\sigma$ be a vector of inputs to $\Pi$. Given an adversary $\mathcal{A}$, the view $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma)$ of $\mathcal{A}$ consists of all the information observable by the adversary while participating in $\Pi$ on input $\sigma$, possibly with additional randomness used by the adversary to make its decisions. Given an adversary $\mathcal{A}$, the output $\mathsf{O}^{\Pi,\mathcal{A}}(\sigma) = (\mathsf{O}^{\Pi,\mathcal{A}}_1(\sigma), \dots, \mathsf{O}^{\Pi,\mathcal{A}}_N(\sigma))$ of $\Pi$ on input $\sigma$ is a vector of outputs for the $N$ parties.
-
-We consider the following standard adversary models, listed in increasing order of capability:
-
+Let $\Pi$ be a protocol, and let $\sigma$ be a vector of inputs to $\Pi$. Given an adversary $\mathcal{A}$, the view $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma)$ of $\mathcal{A}$ consists of all the information observable by the adversary while participating in $\Pi$ on input $\sigma$, possibly with additional randomness used by the adversary to make its decisions. Given an adversary $\mathcal{A}$, the output $\mathsf{O}^{\Pi,\mathcal{A}}(\sigma) = (\mathsf{O}^{\Pi,\mathcal{A}}_1(\sigma), \dots, \mathsf{O}^{\Pi,\mathcal{A}}_N(\sigma))$ of $\Pi$ on input $\sigma$ is a vector of outputs for the $N$ parties.\\\\
+We consider the following standard adversary models, listed in increasing order of capability:\\
 \begin{itemize}
     \item \textbf{Network adversary.} A network adversary can observe the bits flowing over every link in the network. If data is encrypted in an idealized scenario, the only information that a network adversary has is the \textit{volume} of traffic flowing over edges in the network.)\\
     
@@ -197,8 +192,6 @@ We define the security of a communications protocol as the difficulty for the ad
     \Delta(\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_0), \mathsf{V}^{\Pi,\mathcal{A}}(\sigma_1)) = \mathsf{negl}(\lambda),
     $$
     where $\lambda \in \mathbb{N}$ denotes the security parameter, and $\Delta(\cdot, \cdot)$ denotes the statistical distance (i.e., the total variation distance). Protocol $\Pi$ is perfectly secure if the statistical distance is 0.
-    \eli{variation distance - but there are no probabilities here??}\\
-    \hannah{Each $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma)$ is a probability distribution. We get statistical privacy if dropping Alice's onion vs. not dropping her onion produce probability distributions that are statistically close.}
 \end{definition}
 
 \begin{definition} [Distance between inputs] \label{def:distance-between-inputs} 
@@ -218,9 +211,9 @@ We define the security of a communications protocol as the difficulty for the ad
 
 \begin{definition} [$(\epsilon, \delta)$-DP~\cite{TCC:DMNS06}] \label{def:dp}
     A communication protocol $\Pi$ is $(\epsilon, \delta)$-differentially private if for every adversary $\adv$ and every pair of neighboring inputs $\sigma_0$ and $\sigma_1$ and every set $\mathcal{V}$ of adversarial views, 
-    \[
+    $$
     \prob{\mathsf{View}^{\Pi, \adv}(\sigma_0) \in \mathcal{V}} \le e^\epsilon \prob{\mathsf{View}^{\Pi, \adv}(\sigma_1) \in \mathcal{V}} + \delta .
-    \]
+    $$
     
     While differential privacy is defined with respect to neighboring inputs, it also provides (albeit weaker) guarantees for non-neighboring inputs; it is known that the security parameters degrade proportionally with the distance between the inputs~\cite{TCC:DMNS06}.
 
@@ -267,7 +260,7 @@ We define the security of a communications protocol as the difficulty for the ad
 
 Expander graphs are a class of sparse graphs where any subset of its vertices remains well-connected to the rest of the graph, making them particularly useful in the design of network protocols.
 
-\begin{definition} [$\beta$-expander] \label{def:beta-expander}
+\begin{definition} [$\beta$-expander] \label{def:beta-expander} ~\cite[Def. 1]{10.1007/3-540-49543-6_1}
     Formally, a graph $G = (V, E)$ is called a $\beta$-expander if, for every subset of vertices $S \subset V$ where $|S| \leq |V|/2$, the number of edges leaving $S$ (denoted by $\texttt{out}(S)$) satisfies:
     
     $$
@@ -288,8 +281,7 @@ Expander graphs are a class of sparse graphs where any subset of its vertices re
 \begin{definition} [$\lambda$-absolute eiganvalue expander] \label{def:eiganvalue-expander}
      An $r$-regular graph $G = (V, E)$ is called a $\lambda$-absolute eiganvalue expander if, $|\lambda_2|,|\lambda_3|,...,|\lambda_n| \leq \lambda$. Here, $|\lambda_1| \geq |\lambda_2| \geq ... \geq |\lambda_n|$ are the eiganvalues of the adjacency matrix $A$ of $G$.\\
 
-     In fact, iff $G$ is an $r$-regular $\beta$-expander, for some constant $\beta$, then it is also a $\lambda$-absolute eiganvalue expander where $\lambda = r - \frac{\beta^2}{2r}$ (from \textit{Cheeger's inequality})
-     \eli{it's an iff}.
+     In fact, iff $G$ is an $r$-regular $\beta$-expander, for some constant $\beta$, then it is also a $\lambda$-absolute eiganvalue expander where $\lambda = r - \frac{\beta^2}{2r}$ (from \textit{Cheeger's inequality}).
 \end{definition}
 
 \subsubsection{Random Walks} 
@@ -310,7 +302,7 @@ A \textit{random walk} on a graph is a process where, starting from an initial n
     Thus, at each step, the walker moves to one of the neighbors of the current vertex with equal probability.
 \end{definition}
 
-An important property is that a random walk on an expander graph rapidly converges to a uniform distribution, meaning that after a few \eli{polylog in the network size} \hannah{Isn't it \textit{logarithmic} in the number of nodes?} steps, the probability of being at any given vertex becomes nearly uniform, regardless of the starting point.
+An important property is that a random walk on an expander graph rapidly converges to a uniform distribution, meaning that after a polylog number of steps (see Definition~\ref{def:bound-prob-distribution}), the probability of being at any given vertex becomes nearly uniform, regardless of the starting point.
 
 \begin{definition} [Stationary distribution] \label{stationary-distribution}
     The \textit{stationary distribution} of a random walk is a probability distribution over the vertices such that if the walker is distributed according to this distribution at some time $t$, it will have the same distribution at time $t+1$. For a connected, non-bipartite graph, the random walk converges to a unique stationary distribution, and for regular graphs, this stationary distribution is uniform over all vertices.
@@ -330,6 +322,49 @@ $$
 for some constant $\epsilon > 0$. This indicates that the graph has good expansion properties, meaning that the random walk mixes rapidly. In our protocol $\Pi_x$, we take advantage of these properties of $\beta$-expanders, which allows us to prove that the routing paths chosen for onions will sufficiently mix after a polylogarithmic number of steps.
 \end{definition}
 
+\begin{definition}[Probability Distribution of a Simple Random Walk] \label{def:bound-prob-distribution}
+Let $G = (V, E)$ be an $r$-regular $\beta$-expander graph with $|V| = n$. Let $P$ denote the transition matrix of a simple random walk on $G$, and let $h^{(t)} \in \mathbb{R}^n$ be the probability distribution vector after $t$ steps of the walk, starting from an initial distribution $h^{(0)}$. Then for any $t \geq 1$, the probability distribution vector satisfies:
+$$
+\| h^{(t)} - u \|_1 \leq \left(1 - \frac{\beta}{r}\right)^t,
+$$
+where $u = \frac{1}{n}(1, 1, \dots, 1)^T$ is the uniform distribution over $V$ and $\|\cdot\|_1$ denotes the total variation distance.
+\end{definition}
+
+
+% \begin{lemma} \label{lem:edge-expansion}
+% Let $G = (V, E)$ be an $r$-regular $\beta$-expander graph where each node has a self-loop. For any two subsets $S_1, S_2 \subseteq V$, the number of edges between $S_1$ and $S_2$ satisfies:
+% $$
+% |E(S_1, S_2)| \geq \beta \cdot \min(|S_1|, |S_2|),
+% $$
+% even if $S_1$ and $S_2$ are not disjoint.
+% \end{lemma}
+
+% \begin{proof}[Proof of Lemma~\ref{lem:edge-expansion}]
+% For any subset $S \subseteq V$ with $|S| \leq \frac{|V|}{2}$, the number of edges leaving $S$ will be $\geq \beta |S|$. Now consider two subsets $S_1, S_2 \subseteq V$. Without loss of generality, assume $|S_1| \leq |S_2|$. There are two non-trivial cases to consider:\\
+
+% Case 1: $|S_1|, |S_2| \leq \frac{|V|}{2}$. By the edge expansion property, we have $|E(S_1, S_2)| \geq \beta \cdot \min(|S_1|, |S_2|)$.\\
+
+
+% Case 2: Either $|S_1| > \frac{|V|}{2}$ or $|S_2| > \frac{|V|}{2}$. Without loss of generality, assume $|S_1| > \frac{|V|}{2}$. Define the complement $S_1' = \overline{S_1}$, so $|S_1'| = |V| - |S_1| \leq \frac{|V|}{2}$.
+
+% Using the symmetry of edges in $G$:
+% $$
+% |E(S_1, S_2)| = |E(S_1', V \setminus S_2)|.
+% $$
+
+% Now consider the sizes of $S_1'$ and $V \setminus S_2$. Since $|S_2| \geq |S_1|$, we have $|V \setminus S_2| \leq \frac{|V|}{2}$. Both $S_1'$ and $V \setminus S_2$ satisfy the edge expansion property:
+% $$
+% |E(S_1', V \setminus S_2)| \geq \beta \cdot \min(|S_1'|, |V \setminus S_2|).
+% $$
+
+% Finally, substitute back into the sizes of $S_1$ and $S_2$. The relationships $|S_1'| = |V| - |S_1|$ and $|V \setminus S_2| = |S_2|$ imply:
+% $$
+% |E(S_1, S_2)| \geq \beta \cdot \min(|S_1|, |S_2|),
+% $$
+
+% For larger subsets, the bound trivially holds for \(\beta \cdot \min(|S_1|, |S_2|)\).
+% \end{proof}
+
 
 
 \clearpage
@@ -337,215 +372,184 @@ for some constant $\epsilon > 0$. This indicates that the graph has good expansi
 
 \section{Our Protocol}
 
-As previously established, our problem setting consists of $N$ clients (users) and $n$ relays (mixnodes). While each client has a direct connection to every relay, we model the mixnet of relays as an $r$-regular, $\beta$-expander graph.
+As previously established, our problem setting consists of $N$ clients (users) and $n$ relays (mixnodes). Assume $N = O(\mathsf{poly}(\lambda))$, and $n = O(\frac{N}{log^2 \lambda})$. While each client has a direct connection to every relay, we model the mixnet of relays as an $r$-regular, $\beta$-expander graph, where $r > 1$. We can write $\beta = \Theta(1/r)$ \cite[Section 2.3]{Hoory2006}.\\
 
-Each client begins with a single message they wish to send privately to another client. We assume that the set of intended recipients is a permutation of the senders, meaning that each client sends and receives exactly one message. At the start of the protocol, clients must download the current state of the network, which they use to construct a valid routing path through the mixnet. To bootstrap a path, a client selects the first hop uniformly at random from the set of all relays. The remaining path is then constructed by performing a random walk of fixed length $L$. Finally, the recipient is appended, resulting in a path of length $L + 1$ that traverses randomly through the mixnet and terminates at the intended recipient.
+Each client begins with a single message they wish to send privately to another client. We assume that the set of intended recipients is a permutation of the senders, meaning that each client sends and receives exactly one message-bearing onion. At the start of the protocol, clients must download the current state of the network, which they use to construct a valid routing path of a fixed length $L + 1$ through the mixnet. To bootstrap a path, a client selects the first hop uniformly at random from the set of all relays. The remaining path is then constructed by performing a random walk of length $L$. Finally, the recipient is appended, resulting in a path of length $L + 1$ that traverses randomly through the mixnet and terminates at the intended recipient.\\
 
-The client can then use this path to encrypt their message in successive layers. The innermost layer contains the message encrypted under the recipient’s public key, and each additional layer (added in reverse order of the path) specifies the next hop. Consequently, the innermost layer can only be received and decrypted by the recipient if all preceding layers are properly ``peeled'' by the mixnodes in the selected path.
+The client can then use this path to encrypt their message in successive layers. The innermost layer contains the message encrypted under the recipient’s public key, and each additional layer (added in reverse order of the path) specifies the next hop. Consequently, the innermost layer can only be received and decrypted by the recipient if all preceding layers are properly ``peeled'' by the mixnodes in the selected path.\\
 
-At the beginning of the first round, each client sends their formed onion to the first hop. In subsequent rounds, each relay decrypts the outermost layer and then forwards the peeled onion accordingly.
+At the beginning of the first round, each client sends their formed onion to the first hop. In subsequent rounds, each relay decrypts the outermost layer and then forwards the peeled onion accordingly.\\
 
 In the final round, the recipient can then reveal the original message.
 
-
 \subsection{Network Adversary}
+
 \begin{theorem} \label{clm:network}
-    $\Pi_x$ is statistically private from the network adversary when $\frac{N}{n} = \Omega(\log^2 \lambda)$, and $L = \Omega(\log^2 \lambda)$, where $\lambda \in \mathbb{N}$ denotes the security parameter.\\
+    $\Pi_x$ is statistically private from the network adversary when $\frac{N}{n} = \Omega(\log^2 \lambda)$ and $L = \Omega(\log^2 \lambda)$, where $\lambda \in \mathbb{N}$ denotes the security parameter.\\
 \end{theorem}
-\eli{$\lambda$ is both eigenvalue and security parameter.}
+
+
 \begin{proof} [Proof of Theorem~\ref{clm:network}]
 
-    We proceed by induction. In the first round, the adversary knows the exact location of every sender's onion. Let $O$ represent one of these onions. We aim to show that after a polylogarithmic number of rounds, the adversary's belief about which onion is $O$ becomes indistinguishable from a uniform distribution across all $N$ onions.\\
-    
-    Fix a round $i$. Because of mixing occurring at each relay, all onions emerging from a given relay this round will have the same probability of being $O$ (from the adversary’s perspective). Let $S = \{ s_1, \dots, s_n \}$ denote the set of all relays, sorted by the average probability of onions emerging from them. Without loss of generality, assume $n$ is even, allowing us to partition $S$ into two groups, $S_1 = \{ s_1,..., s_{\frac{n}{2}} \}$ and $S_2 = \{ s_{\frac{n}{2} + 1},..., s_n \}$.\\
+For every round $t \in [L]$ and onion $o \in [N]$, we represent the adversary’s belief about the location of $o$ as a probability distribution vector:
+$$
+\mathbf{h}^t(o) = \Big(\mathbf{h}^t_1(o), \; \mathbf{h}^t_2(o), \; \dots, \; \mathbf{h}^t_n(o)\Big),
+$$
+defined over the set of nodes $[n]$. Specifically, each $\mathbf{h}^t_i(o) \in \mathbf{h}^t(o)$ denotes the adversary's best guess of the probability that $o$ is at node $i$ by the end of round $t$. Initially, the adversary observes every sender routing their onion to the first relay, so define:
+$$
+\mathbf{h}^1_i(o) =
+\begin{cases}
+    1, & \text{if $i$ is the first relay in $o$'s routing path},\\
+    0, & \text{otherwise.}
+\end{cases}
+$$
+After every round, the adversary updates their belief vector based on the observed flow of onions between nodes. Let $e^t_{i,j}$ be the number of onions that node $i$ sends to $j$ at the end of round $t$. Denote $H^t_{i,j}$ as the probability (from the adversary's point of view) that an onion at node $i$ is routed to $j$ at round $t$. Then $H^t_{i,j}$ can be expressed as the ratio:
+$$
+H^t_{i,j} = \frac{e^t_{i,j}}{\sum_{k \in [n]} e^t_{i,k}} = \frac{\text{number of onions routed from $i$ to $j$ at round $t$}}{\text{total number of onions routed out of $i$ at round $t$}}
+$$
+Thus the update rule follows a standard Markov process:
+$$
+\mathbf{h}^{t+1}(o) = H^t \mathbf{h}^{t}(o).
+$$
 
-    Let $G_1$ and $G_2$ represent the total probability mass of onions routed this round to relays in $S_1$ and $S_2$, respectively. From Chernoff bounds for Poisson trials (need lemma), with overwhelming probability, the average server loads for each of $S_1$ and $S_2$ will be arbitrarily close to the expected value ($\frac{N}{n}$). It follows that the difference in the sizes of $G_1$ and $G_2$ is negligible, and thus $G_1$ represents approximately the top $\frac{N}{2}$ most likely onions to be $O$'s while $G_2$ represents the rest. \\
-    
-    Now denote $X_1$ and $X_2$ as the highest and lowest probabilities in $G_1$ and let $X_2$ and $X_3$ be the highest and lowest probabilities in $G_2$. Let $o_1$ and $o_4$ be the most probable and least probable onions next round with probabilities $x_1$ and $x_4$, respectively. Let $R_1$ and $R_2$ represent the relays that $o_1$ and $o_4$ were routed to in round $i + 1$. From the properties of expander graphs, we know there are at least $\frac{\beta n}{2}$ edges connecting $S_1$ and $S_2$. Given that the total number of edges in the graph is $\frac{nr}{2}$, we can expect $G_2$ to contribute on average $\frac{\beta N}{r n} = \Omega(\log^2 \lambda)$ onions to $R_1$ and similarly, $G_1$ contributes $\frac{\beta N}{r n} = \Omega(\log^2 \lambda)$ onions to $R_2$. From Chernoff bounds for Poisson trials (Lemma ~\ref{lem:chernoff-1}), with overwhelming probability, $G_1$ and $G_2$ contribute to $R_1$ and $R_2$ a number of onions arbitrarily close to these expected numbers. Thus for every $d > 0$,
-    $$
-    x_1 = Pr[o_1] \leq \left( 1 - \frac{\beta}{r} + d \right) \cdot X_1 + \left(\frac{\beta}{r} - d \right) \cdot X_3
-    $$
-    $$
-    x_4 = Pr[o_4] \geq \left( 1 - \frac{\beta}{r} + d \right) \cdot X_4 + \left(\frac{\beta}{r} - d \right) \cdot X_2
-    $$
 
-    Taking the difference:
+\begin{lemma} \label{lem:serverload-bound}
+    For every edge $(i,j)$, it follows that with overwhelming probability in $\lambda$, 
     $$
-    x_1 - x_4 \leq \left( 1 - \frac{\beta}{r} \right) ( X_1 - X_4) + \left(\frac{\beta}{r} \right) (X_3 - X_2) + d ( X_1 + X_2 - X_3 - X_4 )
+    H^t_{i,j} = \frac{1}{r} \Big(1 \pm O(\frac{1}{\log^{b} \lambda})\Big) \quad \forall \; b < \frac{1}{2}.
     $$
-    $$
-    \leq \left( 1 - \frac{\beta}{r} \right) ( X_1 - X_4) + 2d ( X_1 - X_4 )
-    $$
-    $$
-    = \left( 1 - \frac{\beta}{r} + 2d \right) ( X_1 - X_4)
-    $$
+\end{lemma}
+\begin{proof}[Proof of Lemma \ref{lem:serverload-bound}]
+In an $r$–regular graph the number of paths of length $t$ starting at any given node is exactly $r^t$, and this implies that the number of such paths that end at any fixed node $i$ is the same regardless of $i$. 
+Now suppose we model the first $t$ nodes of an onion's routing path as choosing uniformly at random one of the $n \cdot r^t$ paths of length $t$. Because the number of paths landing at any given node is the same, it follows that the probability that an onion's path ends by traversing edge $(i,j)$ after $t$ rounds is exactly $\frac{1}{nr}$.
 
-    In particular, for all $0 < d <\frac{\beta}{2r}$:
-    $$
-    \left( 1 - \frac{\beta}{r} + 2d \right) < 1
-    $$
-
-    Therefore, the gap between the highest and lowest probabilities is reduced by at least a constant fraction every round. Thus after a polylogarithmic number of rounds, the gap becomes negligible. By partitioning the onions into an appropriately large number ($\Omega(1)$) of groups, we can show that $\Pi_x$ achieves statistical privacy after $L = \Omega(\log^2 \lambda)$ rounds. \\
-    \eli{the general argument is correct but the proof is not complete. The differences are not , but within some parameter that should be added to the calculation. We also need to sum the error probabilities for all the events. }
+Let $e^t_{i,j}$ denote the number of onions routed form $i$ to $j$ at the end of round $t$. By applying lemma \ref{lem:chernoff-deviation}, with overwhelming probability in $\lambda$, for any edge $(i,j)$ in any given round:
+$$
+\Big|e^t_{i,j} - \frac{N}{nr}\Big| \leq \sqrt{\frac{3N}{nr}(\log^c \lambda + \log n + \log r)}, \quad \forall c > 1.
+$$
+$$
+\Rightarrow e^t_{i,j} = \frac{N}{rn}\Big(1 \pm O(\sqrt{\frac{3nr}{N}(\log^c \lambda + \log n + \log r)} \; )\Big), \quad \forall c > 1.
+$$
+Now let $S^t_i = \sum_{j \in \mathcal{N}(i)} e^t_{i,j} = \sum_{j \in \mathcal{N}(i)} e^{t - 1}_{j,i}$ denote the server load at node $i$ in round $t$. Also applying lemma \ref{lem:chernoff-deviation}, with overwhelming probability in $\lambda$, for any $i \in [n]$ in any given round:
+$$
+\Big|S^t_i - \frac{N}{n}\Big| \leq \sqrt{\frac{3N}{n}(\log^d \lambda + \log n)}, \quad \forall d > 1.
+$$
+$$
+\Rightarrow S^t_i = \frac{N}{n}\Big(1 \pm O(\sqrt{\frac{3n}{N}(\log^d \lambda + \log n)} \; ) \Big), \quad \forall d > 1.
+$$
+Therefore with overwhelming probability:
+\begin{align*}
+\frac{e^t_{i,j}}{S^t_i} &= \frac{1}{r}\Big(\frac{1 \pm O(\sqrt{\frac{3nr}{N}(\log^c \lambda + \log n + \log r)})}{1 \mp O(\sqrt{\frac{3n}{N}(\log^d \lambda + \log n)})}\Big)\\
+                        &= \frac{1}{r} \cdot \Big(\frac{1 \pm O(\sqrt{\log^{c - 2} \lambda})}{1 \mp O(\sqrt{\log^{d - 2} \lambda})}\Big)\\
+                        &= \frac{1}{r} \cdot \Big(1 \pm O(\log^{\frac{c - 2}{2}} \lambda)\Big) &\forall \; 1 < d < 2\\
+                        &= \frac{1}{r} \cdot \Big(1 \pm O(\frac{1}{\log^{b} \lambda}\Big)) &\forall b < \frac{1}{2}\\
+\end{align*}
 
 \end{proof}
+Thus, for every round $t$ we can write:
+$$
+H^t = A \cdot \Bigl(1 \pm \delta\Bigr)
+$$
+with $\delta = O\Bigl(\frac{1}{\log^{b} \lambda}\Bigr)$, and 
+$$
+A_{i,j} = \begin{cases}
+\frac{1}{r}, & j \in \mathcal{N}(i),\\[1mm]
+0, & \text{otherwise.}
+\end{cases}
+$$
+Define
+$$
+E_t = H^t H^{t-1} \cdots H^1.
+$$
+Then we have:
+$$
+A^t \Bigl(1 - \delta\Bigr)^t \le E_t \le A^t \Bigl(1 + \delta\Bigr)^t.
+$$
+Now suppose that onion $O_1$ is generated at node $k$ and $O_2$ at node $k'$. Denote by $\mathbf{u}_k$ (respectively, $\mathbf{u}_{k'}$) the indicator vector with a $1$ in the $k$th (respectively, $k'$th) coordinate and $0$ elsewhere. Then
+$$
+\mathbf{h}^t(O_1) = E_t \mathbf{u}_k,\quad \mathbf{h}^t(O_2) = E_t \mathbf{u}_{k'}.
+$$
+Thus,
+$$
+\mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) = E_t \bigl( \mathbf{u}_k - \mathbf{u}_{k'} \bigr).
+$$
+Because the ideal random walk on an $r$-regular graph is symmetric, its stationary distribution is uniform. Moreover, writing $\mathbf{u}_k - \mathbf{u}_{k'}$ in the eigenbasis of $A$, the projection onto the first eigenvector (which corresponds to the stationary distribution) is 0. Consequently, if the eigenvalues of $A$ are
+$$
+1 = \lambda_1 > \lambda_2 \ge \cdots \ge \lambda_n,
+$$
+then there exists some constant $\gamma$ such that $(1 + \delta)\gamma < 1$
+$$
+\bigl\| A^t (\mathbf{u}_k - \mathbf{u}_{k'}) \bigr\| \le \gamma^t \bigl\| \mathbf{u}_k - \mathbf{u}_{k'} \bigr\|.
+$$
+We obtain
+$$
+\bigl\| \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) \bigr\| \le \Bigl(1 + \delta\Bigr)^t\, \gamma^t\, \bigl\| \mathbf{u}_k - \mathbf{u}_{k'} \bigr\|.
+$$
+For $t = \log^2 \lambda$, 
+$$
+\bigl\| \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) \bigr\| = \text{negl}(\lambda).
+$$
+Therefore the adversary’s best estimates for the locations of $O_1$ and $O_2$ are statistically indistinguishable, and the protocol $\Pi_x$ is statistically private with respect to the network adversary.
+
+\end{proof}
+
+
+
+\clearpage
 
 \subsection{Passive Adversary}
 
 \begin{theorem} \label{clm:passive}
-    $\Pi_x$ is statistically private against a passive adversary who can monitor up to a constant fraction $\chi < \frac{1}{2}$ of the servers. Assume $\frac{N}{n} = \Omega(\log^2 \lambda)$ and $L = \Omega(\frac{1}{\log^2 \lambda)}$, where $\lambda \in \mathbb{N}$ represents the security parameter.\\
+    $\Pi_x$ is statistically private against a passive adversary who can monitor up to a constant fraction $\chi < \frac{1}{2}$ of the servers. Assume $\frac{N}{n} = \Omega(\log^2 \lambda)$ and $L = \Omega(\log^2 \lambda)$, where $\lambda \in \mathbb{N}$ denotes the security parameter.\\
 \end{theorem}
 
 \begin{proof} [Proof of Theorem~\ref{clm:passive}]
 
-We prove this by induction. Similar to the network adversary setup, in the first round, the adversary knows the exact location of each sender’s onion. Let $O$ denote one such onion. Due to mixing occurring at the $(1 - \chi)n$ honest relays, onions emerging from an honest party in any given round have the same probability of being $O$ from the adversary's perspective. However, onions emitted by a corrupted relay carry the same likelihood of being $O$ as they had the last time they were mixed at an honest party. Until an onion encounters an honest hop, it has probability 0 (except for $O$, with 1).\\
+Let $C$ denote the set of monitored nodes, where $|C| = \chi < \frac{n}{2}$. Similar to the network adversary setup, at the start of the protocol, the adversary knows the exact location of every sender's onion. Let $O$ represent one of these onions, and let $S \in [n]$ be its initial location. We will show that with overwhelming probability in $\lambda$, $O$ has at least $\Omega(\log^2 \lambda)$ honest parties in its routing path. 
 
-The challenger reveals a sequence of rounds $i_{s, 1} < i_{e, 1} < i_{s, 2} < i_{e, 2} < \dots < i_{s, L} < i_{e, L} \le r$ where $O$ was mixed by an honest relay. Here, each cycle, $(i_{s, j}, \dots, i_{e, j})$, starts and ends with ``good hops'' (where $O$ mixes with other onions) and may include a constant number of “bad hops” in between (where $O$ does not mix). For each cycle $(i_{s, j}, \dots, i_{e, j})$, the challenger informs the adversary that $O$ belongs to a set $\mathcal{O}_{s, j}$ of approximately $(1 - \chi)N$ onions emerging from honest relays at hop $i_{s, j}$. It also reveals that $O$ will not mix again until hop $i_{e, j}$. Let $S$ represent the set of honest relays to which the onions in $\mathcal{O}_{s, j}$ are routed to in round $i_{s, j}$, sorted by the probability of onions after they are mixed. We partition $S$ into two groups: $S_1 = \{ s_1,..., s_{\frac{(1 - \chi)n}{2}} \}$ and $S_2 = \{ s_{\frac{(1 - \chi)n}{2} + 1},..., s_{(1 - \chi)n} \}$.\\
 
-Let $G_1$ and $G_2$ represent the total probability mass of onions routed to relays in $S_1$ and $S_2$, respectively. By applying Chernoff bounds for Poisson trials, we find that, WHP, the average server loads for each of $S_1$ and $S_2$ are arbitrarily close to the expected value, $\frac{N}{n}$. Consequently, the difference in sizes between $G_1$ and $G_2$ is negligible, meaning $G_1$ contains approximately the top half most likely onions in $\mathcal{O}_{s, j}$ to be $O$, while $G_2$ contains the rest.\\
-
-Define $X_1$ and $X_2$ as the highest and lowest probabilities in $G_1$ and let $X_3$ and $X_4$ represent the highest and lowest probabilities in $G_2$. Let $o_1$ and $o_4$ denote the most and least probable onions routed to honest relays in round $i_{e, j}$, with probabilities $x_1$ and $x_4$, respectively. Let $R_1$ and $R_2$ be the next honest relays $o_1$ and $o_4$ are routed to, with cycle lengths $c_1$ and $c_4$ for each. \\
-
-From properties of expander graphs, we know that of all paths of length $c$ originating in $S_2$, a fraction $\frac{(1 - \chi)^2 r^c}{\beta^c}$ will end at $R_1$. Thus since $c = O(1)$, $G_2$ contributes an expected $\frac{(1 - \chi)^2 r^{c}}{\beta^{c}} \cdot \frac{N}{n} = \Omega(\log^2 \lambda)$ onions to $R_1$. Similarly, $G_1$ contributes $\Omega(\log^2 \lambda)$ onions to $R_2$. Applying Chernoff bounds, we find that $G_1$ and $G_2$ contribute onions to $R_1$ and $R_2$ in numbers close to these expectations. \\
-
-It follows from the same logic in Thm.~\ref{clm:network} that the gap between the highest and lowest probabilities of onions at honest relays during any given round diminishes by at least $\frac{(1 - \chi)^2 r^{c}}{\beta^{c}}$ every round. Therefore, after a polylogarithmic number of rounds, this difference becomes negligible. By partitioning the onions into a sufficiently large number of groups ($\Omega(1)$), we conclude that $\Pi_x$ achieves statistical privacy against the passive adversary after $L = \Omega(\log^2 \lambda)$ rounds.
-    
+\begin{lemma}\label{lem:escape-time}
+Let $C \subset [n]$ be any subset of relays with $|C| < \frac{n}{2}$. Then with overwhelming probability in $\lambda$, a random walk of length $\Omega(\log^c \lambda)$ for $c > 1$ will visit $\Omega(\log^c \lambda)$ relays $\not\in C$ with overwhelming probability in $\lambda$.
+\end{lemma}
+\begin{proof}[Proof for Lemma \ref{lem:escape-time}]
+Let $t_n$ be the number of visits to $C$ in $t$ steps, where $\mathbb{E}[t_n] = \frac{|C|t}{n}$. Then \cite[Theorem 2.1]{gillman1998chernoff} states that for any deviation $\gamma > 0$:
+$$
+\Pr[t_n - \frac{t|C|}{n} \geq \gamma] \leq (1 + \gamma \epsilon / 10t) N_q e^{-\gamma^2 \epsilon / 20t}.
+$$
+where $N_q = 1$ accounts for the starting distribution, and $\epsilon = 1 - \lambda_2$ is the spectral gap of the expander. Then we can write:
+\begin{align*}
+    \Pr[t_n - \frac{t|C|}{n} \geq \gamma] \leq (1 + \frac{\gamma \cdot \Theta\left(\frac{1}{r}\right)}{10t}) \exp(-\frac{\gamma^2 \cdot \Theta\left(\frac{1}{r}\right)}{20t})
+\end{align*}
+Requiring $\Pr[t_n - \frac{t|C|}{n} \geq \gamma] = \mathsf{negl}(\lambda)$,
+\begin{align*}
+    \frac{\gamma^2 \cdot \Theta\left(\frac{1}{r}\right)}{20t} &= \log^\delta \lambda &\text{for any $\delta > 1$}\\
+    \Rightarrow \gamma &= \sqrt{t \cdot \log^\delta \lambda}
+\end{align*}
+Thus with overwhelming probability in $\lambda$, 
+\begin{align*}
+    t_n &< \frac{t|C|}{n} + \sqrt{t \cdot \log^\delta \lambda}\\
+    &< \frac{t}{2} + \sqrt{t \cdot \log^\delta \lambda}\\
+    t - t_n &\geq \frac{t}{2} - \sqrt{t \cdot \log^\delta \lambda}\\
+\end{align*}
+This gives a bound for the number of visits $\not\in C$. Specifically when $t = \Omega(\log^c \lambda)$ for $c > 1$
+\begin{align*}
+    t - t_n &= \Omega(\log^c \lambda - \log^{\frac{c + \delta}{2}}\lambda)\\
+    &= \Omega((\log^c \lambda)(1 - \log^{\frac{\delta - c}{2}}\lambda))\\
+\end{align*}
+Since $c > 1$, a valid choice of $\delta$ is $\delta = \frac{c + 1}{2}$, which implies:
+$$
+\frac{\delta - c}{2} < 0.
+$$
+Therefore:
+\begin{align*}
+    t - t_n &= \Omega(\log^c \lambda) \cdot \Theta(1 - \log^{\frac{\delta - c}{2}}\lambda)\\
+    &= \Omega(\log^c \lambda) \cdot \Theta(1)\\
+\end{align*}
+We conclude that after $t = \Omega(\log^c \lambda)$ steps, a random walk will visit $\Omega(\log^c \lambda)$ vertices $\not\in C$ with overwhelming probability in $\lambda$.
 \end{proof}
 
-% \begin{theorem}
-%     $\Pi_x$ is statistically private from the passive adversary capable of monitoring up to a constant fraction $\chi < \frac{1}{2}$ of the servers when $\frac{N}{n} = \Omega(\log^2 \lambda)$, and $L = \Omega(\log^2 \lambda)$, where $\lambda \in \mathbb{N}$ denotes the security parameter.    
-% \end{theorem}
-
-% \begin{proof}
-%     Let $\sigma_0$ and $\sigma_1$ represent two input vectors, and let $d(\sigma_0, \sigma_1)$ denote the distance between them. We aim to show that the adversary's views of $\sigma_0$ and $\sigma_1$ become indistinguishable after a polylogorithmic number of rounds.\\\\
-%     We proceed with a proof by cases.\\
-    
-%     \begin{enumerate}[label=\textbf{\Roman*.}]
-%         \item $d(\sigma_0, \sigma_1) \leq 2$:
-        
-%         In this case, $\sigma_1$ and $\sigma_0$ are the same except there may be a pair of onions, say $o_1$ and $o_2$, that were swapped. However, since each onion was routed to at least $\Omega(\log^2 \lambda)$ honest relays, it follows from Thm.~\ref{clm:network} that the gap between $o_1$ and $o_2$'s probabilities becomes negligible by end of the protocol. Thus, the adversary cannot distinguish between $\sigma_0$ and $\sigma_1$, and statistical privacy is achieved.\\
-    
-%         \item $d(\sigma_0, \sigma_1) > 2$:
-        
-%         Since $N = \mathsf{poly}(\lambda)$, we know the distance between $\sigma_0$ and $\sigma_1$ is also polynomial with respect to $\lambda$. Then we can reduce the problem to a series of smaller steps, each of which is equivalent to the first case, where $d(\sigma_0, \sigma_1)$ is at most 2. By applying the result from Case 1 iteratively (for a polynomial number of steps), we conclude that the adversary's views on $\sigma_0$ and $\sigma_1$ will become statistically indistinguishable after $\Omega(\log^2 \lambda)$ rounds.\\
-%     \end{enumerate}
-    
-%     Thus $\Pi_x$ is statistically private against a passive adversary.
-    
-% \end{proof}
-
-\subsection{Active Adversary}
-
-While $\Pi_x$ is statistically private from the passive adversary, it is only differentially private against the active adversary. We describe the protocol by the setup and routing algorithms for every sender $i \in [n]$. Assume that $F$ is a pseudorandom function (PRF) and that each honest sender runs the same algorithms.\\
-
-\textbf{\textit{Setup.}} During the setup phase, sender $i \in [n]$ prepares a set of onions from its input. For every message pair $u = \{m, j\}$ in $i$'s input, $i$ picks a sequence $T^u_1, \dots, T^u_L$ of servers by performing a random walk across the graph starting at some bootstrap node $T^u_1$, which is chosen uniformly at random from all servers in $[N]$. For all $\ell > 1$, each $T^u_\ell$ is chosen independently and uniformly at random from all neighbors of $T^u_{\ell - 1}$. $i$ then forms an onion from the message $m$, the routing path $(T^u_1, \dots, T^u_L, j)$, the public keys $(\text{pk}_{T^u_1}, \dots, \text{pk}_{T^u_L}, \text{pk}_j)$, and a list of empty nonces. Additionally, party $i$ forms some dummy onions (determined by the output of pseudorandom function $F$) as follows:\\
-
-\begin{enumerate}
-    \item \textbf{for} every server $k \in [N]$:
-    \begin{enumerate}
-        \item compute $b \leftarrow F(sk_{i,k}, \text{session}, 0)$, where $\text{session} \in \mathbb{N}$ denotes the protocol instance.
-        \item \textbf{if} $b \equiv 1$ — set to occur with frequency $\frac{\alpha \log^2 \lambda}{N}$ for some constant $\alpha > 0$:\\
-        --- \textbf{do}:
-        \begin{enumerate}
-            \item perform a random walk $T_1 = \{T_{1,1}, \dots, T_{1, \frac{L}{2} - 1}\}$, where $T_{1,1}$ is chosen uniformly at random from all neighbors of $k$. 
-            \item perform a random walk $T_2 = \{T_{2,1}, \dots, T_{2, \frac{L}{2} - 1}\}$, where $T_{2,1}$ is chosen uniformly at random from all neighbors of $k$. 
-            \item reverse the order of the nodes in $T_1$, forming $T^{\text{rev}}_1$.
-            \item choose a receiver $j \in [n]$ chosen uniformly at random from all clients.
-            \item create a new list $T = T^{\text{rev}}_1 \circ \{ k \} \circ T_2 \circ j$ which is of length $L + 1$, has server $k$ positioned at index $\frac{L}{2}$, and ends at a random client receiver $j$.
-            \item create a list of $L$ nonces $s$, where $s_{\frac{L}{2}} = F(\text{checkpt}, F(sk_{i,k}, \text{session}, 1))$, and all other elements are $\bot$.
-            \item form a dummy onion using the message $\bot$, the routing path $T$, the public keys associated with $T$, and the list $s$ of nonces.
-        \end{enumerate}
-        \item \textbf{end for}
-    \end{enumerate}
-    \item \textbf{end for}\\\\
- \end{enumerate}
-
- \begin{center}
-    \includegraphics[width=400pt]{template/figures/constructing-checkpoint-onion-path.png}
-\end{center}
- 
-\textbf{\textit{Routing.}} Assume a sender $i$ forms a dummy onion with a nonce $s_{\frac{L}{2}}$ embedded in the $\frac{N}{2}$-th layer, and assume $k$ is an honest party intended to receive this onion in round $\frac{L}{2}$. Then $k$ should also receive a symmetric dummy onion formed by some other sender $h$, such that when the onion is processed, it reveals the same nonce $s_{\frac{L}{2}}$. After $k$ peels all its onions in round $\frac{N}{2}$, it counts the number of unmatched checkpoint nonces. If this count exceeds a threshold value $t$, then $k$ knows to abort the protocol run; otherwise, at round $\frac{n}{2} + 1$, the peeled onions are sent to their next destinations in random order.\\
-
-\textbf{\textit{Correctness and efficiency.}} Recalling that correctness is defined with respect to the passive adversary, $\Pi_x$ is clearly correct. Moreover, unless an honest party aborts the protocol run, all messages that are not dropped by the adversary are delivered to their final destinations. In $\Pi_x$, the communication complexity blow-up is $O(\log^6 \lambda)$, since the latency is $L+1 = O(\log^2 \lambda)$ rounds, and the server load is $O(\log^4 \lambda)$.\\\\
-\textbf{\textit{Privacy.}} To prove that $\Pi_x$ is secure, we require that the thresholding mechanism does its job:
-
-\begin{theorem} \label{clm:active}
-    For any constant $\epsilon > 0$, with parameters $L = \Omega(\text{polylog }\lambda)$ and $t = O(\log^2 \lambda)$, $\Pi_x$ is computationally $(\epsilon, \text{negl}(\lambda))$-differentially private from the adversary who corrupts up to $\chi < \frac{1}{2}$ fraction of the parties and drops any fraction $0 \leq \gamma \leq 1$ of the indistinguishable onions.\\
-\end{theorem}
-
-\begin{proof} [Proof of Theorem~\ref{clm:active}]
-We prove below that $\Pi_x$ achieves (statistical) $(\epsilon, \text{negl}(\lambda))$-differential privacy for any constant $\epsilon > 0$ when the PRF $F$ is truly a random function.\\
-
-Let $\sigma_0, \sigma_1$ be any neighboring input vectors. That is, $\sigma_0$ and $\sigma_1$ are identical except on the inputs of two honest senders $P_i$ and $P_j$ and the ``outputs'' of two receivers $P_u$ and $P_v$. On input vector $\sigma_0$, $P_i$ sends a message to $P_v$; while in $\sigma_1$, this is swapped ($P_i$ sends to $P_v$, while $P_j$ sends to $P_u$). For $b \in \{0, 1\}$, let $(I_{i,1}, \dots, I_{i,\ell_1+\ell_2}, R_{b,i})$ be the routing path that $P_i$ picks for their message-bearing onion, and let $(I_{j,1}, \dots, I_{j,\ell_1+\ell_2}, R_{b,j})$ be the routing path that $P_j$ picks for their message-bearing onion.\\
-
-We prove the theorem by cases.\\
-
-\textbf{Case 1:} \textit{neither $P_i$'s message nor $P_j$'s message is delivered}. The adversarial views for the two settings are perfectly indistinguishable since the adversary never observes the onions' layers for $P_u$ and $P_v$, i.e., $\text{View}_{\Pi_x^{\mathcal{A}}}(\sigma_0) = \text{View}_{\Pi_x^{\mathcal{A}}}(\sigma_1)$.\\
-
-\textbf{Case 2:} \textit{both $P_i$'s message and $P_j$'s message is delivered}. In this case, $\text{View}_{\Pi_x^{\mathcal{A}}}(\sigma_0)$ is statistically indistinguishable from $\text{View}_{\Pi_x^{\mathcal{A}}}(\sigma_1)$, by Theorem \ref{clm:passive}.\\
-
-\textbf{Case 3:} \textit{either $P_i$'s or $P_j$'s message is delivered, and the other is dropped}. In this case, we will prove that $\text{View}_{\Pi_x^{\mathcal{A}}}(\sigma_0)$ and $\text{View}_{\Pi_x^{\mathcal{A}}}(\sigma_1)$ are differentially private. W.l.o.g., we assume that $P_i$'s message makes it to its recipient $R_{b,i}$, but $R_{b,j}$ does not receive $P_j$'s message. The only information the adversary has to help determine the input setting is the volumes of onions received by each recipient. W.o.p., the number $n$ of indistinguishable checkpoint onions for either $P_u$ or $P_v$ is arbitrarily close to the expected number $\mathbb{E}[n]$ (since $\mathbb{E}[n]$ is polylogarithmic in the security parameter). Seen this way, the number of indistinguishable checkpoint onions for $P_u$, which we denote by $n_u$, and the number of indistinguishable checkpoint onions for $P_v$, which we denote by $n_v$, are Binomial random variables with $n$ trials and bias $\frac{1}{2}$, i.e., $n_u, n_v \sim \text{Binomial}(n, \frac{1}{2})$. Thus, the numbers of messages received are obscured by a Binomial Mechanism which, for $n = \Omega(\text{polylog } \lambda)$, was shown~\cite{EC:DKMMN06} to be $(\epsilon/2, \text{negl}(\lambda))$-differentially private for any positive constant $\epsilon$. It follows from the composition theorem for differential privacy that $\Pi_x$ achieves (computational) $(\epsilon, \text{negl}(\lambda))$-differential privacy for any positive constant $\epsilon$. 
-
-\end{proof}
-
-\newpage
-
- 
-
-\section{Our Protocol: Wrapping Onions} \label{sec:woes}
-
-\subsection{Overview}
-
-At a high level, the wrapping onions protocol begins just like traditional onion routing: a client forms an onion by encrypting a message with multiple layers of encryption. Each relay in the path is chosen uniformly at random from all available nodes without regard for the underlying topology. 
-
-Let's say for some sender, receiver pair $(S, R)$, $S$ forms an onion $O = (O_1, O_2,..., O_{L+1})$ with routing path $(P_1, P_2,...,P_L, R)$, where $L = \Omega(\log \lambda)$ denotes the static nodes in the path. For each round $i \leq L$, When $P_i$ receives $O_i$ and peels off its outer layer to reveal $O_{i+1}$, it learns the identity of the next intended hop, $P_{i+1}$. Then, using its knowledge of the current network topology, for some detour length $d = \Omega(\log \lambda)$, the node $P_i$ determines an intermediate path $(P_{i,1}, P_{i,2},..., P_{i,d})$, where $P_{i,d}$ is some direct neighbor of $P_{i+1}$. Asume this path is chosen uniformly at random from all possible paths from $P_i$ to $P_{i+1}$. Then, $P_i$ uses this path to wrap $O_{i+1}$ in $d$ additional layers of encryption, forming a new onion,
-$$
-O_i' \leftarrow \texttt{FormOnion}(O_{i+1}, (P_{i,1}, P_{i,2},..., P_{i,d}), (pk_{i,1}, pk_{i,2},..., pk_{i,d}))
-$$ 
-$$
-= (O_{i,1}, O_{i,2}, ..., O_{i,d}, O_{i+1}),
-$$
-so that after $d$ rounds, $P_{i,d}$ will peel $O_{i+1,d}$, revealing $O_{i+1}$ to be sent directly to $P_{i+1}$. 
-
-\begin{center}
-    \includegraphics[width=375pt]{template/figures/detour.png}
-\end{center}
-Note that with $L, d = \Omega(\log \lambda)$, the total path length will be $\Omega(\log^2 \lambda)$
-
-\subsection{Correctness}
-
-
-
-\subsection{Resilience to Churn}
-
-Another advantage of the wrapping onions approach is its resilience to network churn. Previously, if even a single node in the predetermined path goes offline, the onion may become ``stuck'' with no valid route to its destination. In the wrapping onions model, only the $L$ nodes chosen initially by the client need to be online for the entirety of the protocol. The detours and network topology (connections between nodes) can be adjusted dynamically. 
-
-\clearpage
-
-\subsection{Parameters}
-
-Let $l = \Omega(\log \lambda)$ represent the initial path length constructed by the client sender. Denote $d = \Omega(\log \lambda)$ as the length of each detour. Then $L = ld = \Omega(\log^2 \lambda)$ represents the total path length from sender to receiver.
-
-\subsection{Privacy Guarantees}
-
-\subsubsection{Passive Adversary}
-
-\begin{theorem} \label{clm:passive-2}
-    $\Pi_w$ is statistically private against a passive adversary who can monitor up to a constant fraction $\chi < \frac{1}{2}$ of the servers. Assume $\frac{N}{n} = \Omega(\log^2 \lambda)$ and $d = \Omega(\log \lambda)$, $L = \Omega(\log^2 \lambda)$, where $\lambda \in \mathbb{N}$ represents the security parameter.\\
-\end{theorem}
-
-\begin{proof} [Proof of Theroem~\ref{clm:passive-2}]
     
 \end{proof}
-
-
-\subsection{Communication Complexity Blow-up}
-
-\subsubsection{Packet Size}
-
-\subsubsection{Latency}
-
-
 
 
 \section{Conclusion and Open Problems}
@@ -565,49 +569,36 @@ Let $l = \Omega(\log \lambda)$ represent the initial path length constructed by 
 % MORE PROOFS
 \section{Supplementary proofs} \label{sec:proofs}
 
-\begin{lemma} \label{lem:chernoff} Consider a random experiment with $n$ equally likely outcomes conducted over $N$ independent Poisson trials. For sufficiently large $n$, if $N = \omega(n \log n)$, then every outcome occurs a number of times arbitrarily close to its expected value, $\frac{N}{n}$. 
+\begin{lemma} \label{lem:chernoff-deviation} Consider a random experiment with $n$ equally likely outcomes conducted over $N$ independent Poisson trials. Let $\lambda$ denote any sufficiently large natural number. Let $X_i$ denote the number of times an outcome $i$ occurred after $N$ trials. Then with overwhelming probability w.r.t. $\lambda$, every outcome $i \in [n]$ will deviate from $\mathbb{E}[X_i] = \frac{N}{n}$ no more than:
+$$
+\sqrt{\frac{3N}{n}(\log^c \lambda + \log n)}
+$$
+for all $c > 1$
 \end{lemma} 
 
-\begin{proof}[Proof of Lemma~\ref{lem:chernoff}]
+\begin{proof}[Proof of Lemma~\ref{lem:chernoff-deviation}]
+
 Let $X_i$ denote the number of times some outcome $i \in [n]$ occurred after $N$ trials. Then $\mathbb{E}[X_i]$ = $\frac{N}{n}$, and it follows from Chernoff bounds~\cite[Cor.~4.6]{MU05} that for all $0 < \delta < 1$:
 $$
-\Pr\left(|X - \frac{N}{n}| \geq \delta \cdot \frac{N}{n} \right) \leq 2 e^{-\frac{\delta^2 \cdot N}{3n}}.
+\Pr\left(|X_i - \frac{N}{n}| \geq \delta \cdot \frac{N}{n} \right) \leq 2 e^{-\frac{\delta^2 \cdot N}{3n}}.
 $$
 Applying the union bound over all $n$ outcomes, we get:
 $$
-\Pr\left(\exists i \in [n]: |X - \frac{N}{n}| \geq \delta \cdot \frac{N}{n} \right) \leq n \cdot 2 e^{-\frac{\delta^2 \cdot N}{3n}} = 2 e^{\ln n -\frac{\delta^2 \cdot N}{3n}}.
+\Pr\left(\exists i \in [n]: |X_i - \frac{N}{n}| \geq \delta \cdot \frac{N}{n} \right) \leq n \cdot 2 e^{-\frac{\delta^2 \cdot N}{3n}} = 2 e^{\ln n -\frac{\delta^2 \cdot N}{3n}}.
 $$
-Substituting $N = \omega(n \log n)$, we can simplify the expression in the exponent:
-$$
-\ln n - \frac{\delta^2 \cdot \omega(n \log n)}{3n} = \omega(-\log n).
-$$
-Since $e^{\omega(-\log n)}$ decays to 0 as $n \rightarrow \infty$, it follows that the probability that any outcome occurs significantly more or less than the expected value, $\frac{N}{n}$, is negligible for sufficiently large $n$.
+Solve for $\delta$, requiring the probability to be negligible in $\lambda$:
+
+\begin{align*}
+\frac{\delta^2 \cdot N}{3n} - \log n &\geq \log^c \lambda, &\forall c > 1\\
+\delta &\geq \sqrt{\frac{3n}{N}(\log^c \lambda + \log n)} &
+\end{align*}
+
+Thus, with overwhelming probability (w.r.t. $\lambda$), we have:
+\begin{align*}
+    \left|X_i - \frac{N}{n}\right| < \sqrt{\frac{3N}{n}(\log^c \lambda + \log n)} \quad \forall c > 1
+\end{align*}
+
 \end{proof}
 
-
-\begin{lemma} \label{lem:chernoff-1} Consider the same setup as in Lemma~\ref{lem:chernoff}, but now we express $n$ and $N$ as functions of the security parameter $\lambda$. If $N = \mathsf{poly}(\lambda)$ and $n = O(N / \log^\epsilon \lambda)$ for all $\epsilon \geq 2$, then every outcome occurs a number of times arbitrarily close to the expected value, $\frac{N}{n}$, with overwhelming probability in $\lambda$.
-\end{lemma} 
-
-\begin{proof}[Proof of Lemma~\ref{lem:chernoff-1}]
-
-For $N = \mathsf{poly}(\lambda)$ and $n = O(N / \log^\epsilon \lambda)$, we can write:
-$$
-n \log n = O\left(\frac{\mathsf{poly}(\lambda)}{\log^\epsilon \lambda} \cdot \log\left(\frac{\mathsf{poly}(\lambda)}{\log^\epsilon \lambda}\right)\right) = o(\mathsf{poly}(\lambda)).
-$$
-Thus,
-$$
-N = \mathsf{poly}(\lambda) = \omega(n \log n).
-$$
-Applying Lemma~\ref{lem:chernoff}, we conclude that every outcome occurs a number of times arbitrarily close to the expected value, $\frac{N}{n}$. 
-\end{proof}
-
-\begin{lemma} \label{lem:chernoff-2} Continuing the result from Lemma~\ref{lem:chernoff-1}, it follows that any subset of $k$ outcomes (where $k \in [n]$) will occur a number of times arbitrarily close to the expected value $\frac{kN}{n}$, with overwhelming probability in $\lambda$.
-\end{lemma} 
-
-\begin{proof}[Proof of Lemma~\ref{lem:chernoff-2}]
-Let $S$ denote a subset of $k$ outcomes, and let $O_S$ represent the total number of trials that resulted in one of these outcomes, with an expected value of $\mathbb{E}[O_S] = \frac{kN}{n}$. Now assume, for the sake of contradiction, that with non-negligible probability, $O_S$ differs from the expectation by more than a positive factor $\delta < 1$.
-
-Then by the pigeonhole principle, there is a non-negligible probability that at least one outcome occurred significantly more or less times than $\frac{N}{n}$. However, this contradicts Lemma \ref{lem:chernoff-2}. Thus, the probability must be negligible in $\lambda$.
-\end{proof}
 
 \end{document}
