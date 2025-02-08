@@ -85,10 +85,9 @@ Onion Routing on Sparse Distributed Networks
 % ABSTRACT
 \vspace{-8mm}
 \begin{abstract}
-A network adversary is an entity with complete visibility of all traffic flowing through a distributed network. Even when a message’s content is encrypted, a network adversary can analyze traffic patterns to infer who is communicating with whom—a form of surveillance that can be exploited for control and influence. Anonymous communication protocols defend against this by introducing uncertainty in how messages traverse the network. \textit{Onion routing} is a widely adopted approach that achieves anonymity by encrypting messages in layers and relaying them through multiple intermediaries. Prior work by Ando, Lysyanskaya, and Upfal [ICALP 2018] showed that when intermediate nodes are selected uniformly at random in a complete-graph topology, the variation distance between a network adversary’s view of any two communication patterns decays faster than any inverse polynomial in the security parameter. This strong, provable definition of anonymity, known as \textit{statistical privacy}, holds when onions are batch-processed with a polylogarithmic number of other onions for a polylogarithmic number of rounds (in the security parameter).
+In distributed networks, an adversary with full network visibility may analyze traffic patterns to infer who is communicating with whom. Anonymous communication protocols provide a necessary defense by ensuring that any two observable communication patterns are statistically indistinguishable. One of the most practical and widely adopted methods for establishing anonymous communication channels is onion routing, where messages are encrypted in layers and relayed through multiple intermediaries. Ando, Lysyanskaya, and Upfal [ICALP 2018] showed that in a setting where each participant sends and receives exactly one fixed-length message, onion routing achieves anonymity against the network adversary when intermediaries are selected uniformly at random, and both server load and path length are polylogarithmic in the security parameter.
 
-We extend this result to sparse networks modeled as $r$-regular expander graphs, where each server connects to only a small constant ($r > 2$) number of neighbors. By routing onions via independent, fixed-length random walks, we show that statistical privacy can still be achieved against a network adversary, with both server load and path length remaining polylogarithmic in the security parameter. This result demonstrates that practical and provably secure communication is possible even in sparsely connected distributed networks.
-
+This result holds when the network topology resembles a complete graph. We aim to extend this to the sparse network setting where each server is connected directly to only a few neighbors. In particular, we are interested in $r$-regular expander graphs. We show that if each routing path is determined by an independent, fixed-length random walk, our protocol achieves anonymity against the network adversary, with both server load and path length remaining polylogarithmic in the security parameter.
 \iftheory
 \vfill
 %\noindent\textbf{Keywords:} 
@@ -125,258 +124,170 @@ Protecting user privacy in communication is a growing challenge in modern networ
 
 Onion routing is widely adopted due to its simplicity and ability to tolerate failures in a subset of nodes. Systems like Tor \cite{tor}, which implement onion routing, are used by millions of people daily to protect their online activities. However, despite its widespread use, the security guarantees of onion routing are not fully understood, especially in the face of powerful adversaries.
 
-Previous work, such as the protocol $\Pi_p$ introduced in~\cite{ICALP:AndLysUpf18}, shows that \textit{statistical privacy} can be achieved against a passive adversary if the intermediaries in the mixnet are chosen uniformly at random from all available nodes in a fully connected network. However, this approach relies on a complete graph, where every node can communicate directly with every other node, leading to a quadratic increase in the number of network edges as the system scales to accommodate more mixnodes. Thus the fully connected mixnet is inefficient for large systems.
+Previous work, such as the protocol $\Pi_p$ introduced in~\cite{ICALP:AndLysUpf18}, shows that \textit{statistical privacy} can be achieved against a passive adversary if the intermediaries in the network are chosen uniformly at random from all available nodes in a fully connected network. However, this approach relies on a complete graph, where every node can communicate directly with every other node, leading to a quadratic increase in the number of network edges as the system scales to accommodate more nodes. Thus the fully connected network is inefficient for large systems.
 
-We present the design and evaluation of $\Pi_x$, a new protocol that aims to provide similar levels of anonymity while requiring significantly fewer network edges. Instead of relying on a fully connected mixnet, $\Pi_x$ assumes an \textit{expander} topology, a class of sparse graphs that maintain strong connectivity even with very few edges. In our approach, each mix-node has a probability distribution based on its connections to a fixed number of other nodes, from which clients select the next hop in their routing path. We demonstrate that, by configuring these distributions to approximate an expander graph, $\Pi_x$ can provide the same anonymity guarantees as a fully connected network but with only $O(n)$ edges.
+We present the design and evaluation of $\Pi_x$, a new protocol that aims to provide similar levels of anonymity while requiring significantly fewer network edges. Instead of relying on a fully connected network, $\Pi_x$ assumes an \textit{expander} topology, a class of sparse graphs that maintain strong connectivity even with very few edges. In our approach, each node has a probability distribution based on its connections to a fixed number of other nodes, from which clients select the next hop in their routing path. We demonstrate that, by configuring these distributions to approximate an expander graph, $\Pi_x$ can provide the same anonymity guarantees as a fully connected network but with only $O(n)$ edges.
 
 We demonstrate that expander graphs can be a practical foundation for large-scale anonymous communication systems, providing a balance between efficiency and privacy.
 
-\subsection{Progression of Goals}
 
-In our exploration of onion routing protocols on an expander topology, we begin with the foundational settings introduced in~\cite{ICALP:AndLysUpf18}, which assumes a synchronous communication model where all messages are delivered within fixed rounds. The goal is to achieve statistical privacy against the network and passive adversaries, and differential privacy against the active adversary. We first aim to generalize these results to an expander topology. 
+% \section{Definitions}
 
-However, a practical challenge of this adaption is enabling efficient onion formation for senders without requiring full knowledge of the network topology, which may change between and even within a single execution of the protocol. In the first results of this paper, clients need to download and maintain the global network structure to select routing paths. However, this becomes impractical as the network scales. To address these issues, we propose a novel protocol extension: wrapping onions. In this approach, the client forms an initial onion with partial routing information and sends it to the first intermediary node. This node peels the first layer to reveal the next destination node, but because the graph is an expander, there may not be a direct link. Instead, the intermediary node must create a detour path to the next hop, wrapping the onion in additional layers, and forwarding it onward. By delegating some of the routing decisions to intermediary nodes, the protocol significantly reduces the burden on clients, as they no longer need to download or maintain the entire network topology. This wrapping mechanism also aligns well with the expander graph's natural properties, where efficient routing can be achieved with localized knowledge.
+% \subsection{Security Parameter}
 
-Another advantage of this approach becomes evident when the network experiences churn, where nodes and edges are dynamically added or removed during execution. In a static topology, an onion formed at the start of the protocol could potentially die at some point if a node goes offline. However, in the wrapping onions protocol, the responsibility for routing dynamically shifts to intermediary nodes, which are better positioned to adapt to local changes in the network. This makes the protocol inherently more robust to churn, as local routing decisions can reflect the current network state.
+% The security parameter\footnote{It is worth noting that ``$\lambda$'' is also commonly used to denote eigenvalues (of a graph's adjacency matrix). To avoid confusion, we will explicitly specify whenever $\lambda$ represents something other than the security parameter.}, $\lambda \in \mathbb{N}$, is a tunable input that quantifies a system's level of security.
 
-In summary, our progression starts by generalizing the provable guarantees of $\Pi_p$ and $\Pi_a$ to an expander graph topology, then we build on this foundation with the wrapping onions protocol, which enhances scalability by minimizing client-side network requirements and improves computational efficiency.
+% \begin{definition} [Negligibility] \label{def:negl}
+%     A function $f : \mathbb{N} \rightarrow \mathbb{R}$ is negligible in $\lambda$, written $f(\lambda) = \negl$, if for every polynomial~$p(\cdot)$ and all sufficiently large $\lambda$, 
+%     $$
+%     f(\lambda) < \frac{1}{p(\lambda)}.
+%     $$
+% \end{definition}
 
+% \begin{definition} [Overwhelming Probability] \label{def:wop}
+%     An event occurs with overwhelming probability if it is the complement of an event with probability negligible in $\lambda$.
+% \end{definition}
 
-\section{Definitions}
+% \begin{definition} [Statistical Closeness] \label{def:statistical-close}
+%     We say that two families of distributions~$\{D_{0, \lambda}\}_{\lambda \in\mathbb{N}}$ and $\{D_{1, \lambda}\}_{\lambda \in\mathbb{N}}$ are statistically close if the statistical distance between $D_{0, \lambda}$ and $D_{1, \lambda}$ is negligible in $\lambda$~\footnote{When the security parameter is clear by context, we abbreviate this notion by $D_0 \approx_s D_1$.}.
+% \end{definition}
 
-\subsection{Security Parameter}
+% \subsection{Network and Participants}
 
-The security parameter\footnote{It is worth noting that ``$\lambda$'' is also commonly used to denote eigenvalues (of a graph's adjacency matrix). To avoid confusion, we will explicitly specify whenever $\lambda$ represents something other than the security parameter.}, $\lambda \in \mathbb{N}$, is a tunable input that quantifies a system's level of security. It can be adjusted to achieve various trade-offs (e.g., privacy vs. latency), since many system parameters and metrics are bound asymptotically by functions of $\lambda$. 
+% Our setup requires two distinct roles: $N$ clients (users), who wish to send private messages to other clients, and a network of $n$ relays (nodes) that serve as intermediaries to unlink sender-receiver pairs. While each client has a direct connection to every relay, we model the network of relays as an $r$-regular, $\beta$-expander graph, where all relays are assumed to be synchronized. In our definitions, $N$ is polynomially bounded by the security parameter $\lambda$. Additionally, the size of the network, $n$, is bounded by: $O\left(\frac{N}{log^2 \lambda}\right)$. 
 
-A function $f : \mathbb{N} \rightarrow \mathbb{R}$ is negligible in $\lambda$, written $f(\lambda) = \negl$, if for every polynomial~$p(\cdot)$ and all sufficiently large $\lambda$, 
-$$
-f(\lambda) < \frac{1}{p(\lambda)}.
-$$
-An event occurs with overwhelming probability if it is the complement of an event with probability negligible in $\lambda$. We say that two families of distributions~$\{D_{0, \lambda}\}_{\lambda \in\mathbb{N}}$ and $\{D_{1, \lambda}\}_{\lambda \in\mathbb{N}}$ are statistically close if the statistical distance between $D_{0, \lambda}$ and $D_{1, \lambda}$ is negligible in $\lambda$~\footnote{When the security parameter is clear by context, we abbreviate this notion by $D_0 \approx_s D_1$.}.
+% Each input to a protocol $\Pi$ is represented as an $N$-dimensional vector. When the protocol is executed on an input $\sigma = (\sigma_1, \dots, \sigma_N)$, each $\sigma_i$ consists of a collection of properly formed message pairs. A message pair $(m,j) \in \sigma_i$ represents user $i$'s intention to send message $m$ to user $j$. Let $\mathcal{M}$ denote the (bounded) message space. Then $(m,j)$ is considered properly formed if $m \in \mathcal{M}$ and $j \in [N]$. 
 
-\subsection{Network and Participants}
-
-Our setup requires two distinct roles: $N$ clients (users), who wish to send private messages to other clients, and a network of $n$ relays (mixnodes) that serve as intermediaries to unlink sender-receiver pairs. While each client has a direct connection to every relay, we model the mixnet of relays as an $r$-regular, $\beta$-expander graph, where all relays are assumed to be synchronized. In our definitions, $N$ is polynomially bounded by the security parameter $\lambda$. Additionally, the size of the mixnet, $n$, is bounded by: $O\left(\frac{N}{log^2 \lambda}\right)$. 
-
-Each input to a protocol $\Pi$ is represented as an $N$-dimensional vector. When the protocol is executed on an input $\sigma = (\sigma_1, \dots, \sigma_N)$, each $\sigma_i$ consists of a collection of properly formed message pairs. A message pair $(m,j) \in \sigma_i$ represents user $i$'s intention to send message $m$ to user $j$. Let $\mathcal{M}$ denote the (bounded) message space. Then $(m,j)$ is considered properly formed if $m \in \mathcal{M}$ and $j \in [N]$. 
-
-Let $\mathcal{M}(\sigma)$ represent the set of all messages in $\sigma$. It is defined as the multiset of all message pairs across all users' inputs, given by
-
-$$
-\mathcal{M}(\sigma_1, \dots, \sigma_N) = \bigcup_{i=1}^{N} \{ (m,j) \in \sigma_i \}.
-$$
-
-\subsection{Threat Model}
-
-Let $\Pi$ be a protocol, and let $\sigma$ be a vector of inputs to $\Pi$. Given an adversary $\mathcal{A}$, the view $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma)$ of $\mathcal{A}$ consists of all the information observable by the adversary while participating in $\Pi$ on input $\sigma$, possibly with additional randomness used by the adversary to make its decisions. Given an adversary $\mathcal{A}$, the output $\mathsf{O}^{\Pi,\mathcal{A}}(\sigma) = (\mathsf{O}^{\Pi,\mathcal{A}}_1(\sigma), \dots, \mathsf{O}^{\Pi,\mathcal{A}}_N(\sigma))$ of $\Pi$ on input $\sigma$ is a vector of outputs for the $N$ parties.\\\\
-We consider the following standard adversary models, listed in increasing order of capability:\\
-\begin{itemize}
-    \item \textbf{Network adversary.} A network adversary can observe the bits flowing over every link in the network. If data is encrypted in an idealized scenario, the only information that a network adversary has is the \textit{volume} of traffic flowing over edges in the network.)\\
-    
-    \item \textbf{Passive adversary.} In addition to the capabilities of a network adversary, a passive adversary can monitor the internal states and operations of a constant fraction of the relays. The adversary selects which relays to monitor non-adaptively, meaning the choice is made before the protocol begins and remains fixed throughout execution. Importantly, we assume the passive adversary has full knowledge of the network topology to inform their selection of whom to monitor.\\
-    
-    \item \textbf{Active adversary.} In addition to the capabilities of a passive adversary, an active adversary can corrupt the behavior of a constant fraction of the relays. While the selection of whom to corrupt remains non-adaptive (and may be informed by the network topology), the behavior of corrupted parties can be altered on the fly. This includes deviating arbitrarily from the protocol (e.g., dropping, delaying, or repeating onions). \\
-\end{itemize}
-
-\subsection{Privacy Definitions}
-
-We define the security of a communications protocol as the difficulty for the adversary to infer who is communicating with whom (beyond what is leaked from captured messages). Below, we introduce two flavors of security notions. We will show that our constructions achieve either statistical privacy or $(\epsilon,\delta)$-differential privacy~\cite{TCC:DMNS06} in the idealized encryption setting.\\
-
-\begin{definition} [Statistical privacy] \label{def:statistical-privacy}
-    Let $\Sigma^*$ be the input set consisting of every input of the form
-    $$
-    \sigma = \{(m_1, \pi(1)), \dots, (m_N, \pi(N))\},
-    $$
-    where $m_1, \dots, m_N \in \mathcal{M}$ and $\pi : [N] \rightarrow [N]$ is any permutation function over the set $[N]$. A communications protocol $\Pi$ is statistically private from the adversaries in the class $\mathcal{A}$ if, for all $\mathcal{A} \in \mathcal{A}$ and for all $\sigma_0, \sigma_1 \in \Sigma^*$ that differ only on the honest parties' inputs and outputs, the adversary's views $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_0)$ and $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_1)$ are statistically indistinguishable, i.e.,
-    $$
-    \Delta(\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_0), \mathsf{V}^{\Pi,\mathcal{A}}(\sigma_1)) = \mathsf{negl}(\lambda),
-    $$
-    where $\lambda \in \mathbb{N}$ denotes the security parameter, and $\Delta(\cdot, \cdot)$ denotes the statistical distance (i.e., the total variation distance). Protocol $\Pi$ is perfectly secure if the statistical distance is 0.
-\end{definition}
-
-\begin{definition} [Distance between inputs] \label{def:distance-between-inputs} 
-    The distance between two inputs $\sigma_0 = (\sigma_1, \dots, \sigma_N)$ and $\sigma_1 = (\sigma_1', \dots, \sigma_N')$, denoted $d(\sigma_0, \sigma_1)$, is given by
-    $$
-    d(\sigma_0, \sigma_1) \overset{\Delta}{=} \sum_{i=1}^{N} |\sigma_{i} \vartriangle \sigma_{i}'|,
-    $$
-    where $\vartriangle$ represents the symmetric difference between $\sigma_{i}$ and $\sigma_{i}'$.\\
-\end{definition}
-
-\begin{definition} [Neighboring inputs] \label{def:neighboring-inputs} 
-    Two inputs $\sigma_0$ and $\sigma_1$ are neighboring if 
-    $$
-    d(\sigma_0, \sigma_1) \leq 1.
-    $$\\
-\end{definition}
-
-\begin{definition} [$(\epsilon, \delta)$-DP~\cite{TCC:DMNS06}] \label{def:dp}
-    A communication protocol $\Pi$ is $(\epsilon, \delta)$-differentially private if for every adversary $\adv$ and every pair of neighboring inputs $\sigma_0$ and $\sigma_1$ and every set $\mathcal{V}$ of adversarial views, 
-    $$
-    \prob{\mathsf{View}^{\Pi, \adv}(\sigma_0) \in \mathcal{V}} \le e^\epsilon \prob{\mathsf{View}^{\Pi, \adv}(\sigma_1) \in \mathcal{V}} + \delta .
-    $$
-    
-    While differential privacy is defined with respect to neighboring inputs, it also provides (albeit weaker) guarantees for non-neighboring inputs; it is known that the security parameters degrade proportionally with the distance between the inputs~\cite{TCC:DMNS06}.
-
-    We say that $\Pi$ is computationally $(\epsilon,\delta)$-differentially private~\cite{C:MPRV09} if the above bound holds for all polynomially bounded adversaries.\\
-\end{definition} 
-
-\subsection{Performance Metrics}
-
-\begin{definition} [Correctness] \label{def:correctness}
-    We define correctness with respect to passive adversaries since message delivery cannot be guaranteed in the presence of an active adversary.
-    \eli{we need appropriate definition for active adversary}\\
-    
-    A communications protocol $\Pi$ is said to be correct on an input $\sigma \in \Sigma$ if for any passive adversary $\mathcal{A}$, and for every recipient $j \in [N]$, the output $\mathsf{O}^{\Pi, \mathcal{A}}_j(\sigma)$ corresponds to the multiset of all messages for recipient $j$ in the input vector $\sigma$. That is,
-    $$
-    \mathsf{O}^{\Pi, \mathcal{A}}_j(\sigma) = \{m \mid (m, j) \in \mathcal{M}(\sigma)\},
-    $$
-    where $\mathcal{M}(\sigma)$ denotes the multiset of all messages in $\sigma$. \\
-\end{definition}
-
-\begin{definition} [Communication complexity blow-up] \label{def:ccb}
-    The communication complexity blow-up of an OR protocol $\Pi$ is defined with respect to an input vector $\sigma$ and an adversary $\mathcal{A}$. 
-    
-    Denoted $\gamma^{\Pi, \mathcal{A}}(\sigma)$, it is the expected ratio between the total number $\Gamma^{\Pi, \mathcal{A}}(\sigma)$ of onions transmitted in protocol $\Pi$ and the total number $\mathcal{M}(\sigma)$ of messages in the input vector. That is,
-    $$
-    \gamma^{\Pi, \mathcal{A}}(\sigma) \overset{\Delta}{=} \mathbb{E} \left[ \frac{\Gamma^{\Pi, \mathcal{A}}(\sigma)}{|\mathcal{M}(\sigma)|} \right].
-    $$
-
-    $\gamma^{\Pi, \mathcal{A}}(\sigma)$ essentially measures how many more onion transmissions are required by the protocol, compared with transmitting the messages in onions directly from the senders to the recipients (without passing through intermediaries). We assume that every message $m \in \mathcal{M}$ in the message space $\mathcal{M}$ “fits” into a single onion. The communication complexity is measured in unit onions, which is appropriate when the parties pass primarily onions to each other.\\
-\end{definition}
-
-\begin{definition} [Server load] \label{def:serverload}
-    The server load of an OR protocol $\Pi$ is defined with respect to an input vector $\sigma$ and an adversary $\mathcal{A}$. It is the expected number of onions processed by a single party in a round.\\
-\end{definition}
-
-\begin{definition} [Latency] \label{def:latency}
-    The latency of an OR protocol $\Pi$ is defined with respect to an input vector $\sigma$ and an adversary $\mathcal{A}$. It is the expected number of rounds in a protocol execution.
-    
-    Protocols with having low (i.e., polynomial in the security parameter) server load, low communication complexity blow-up, and low latency are considered efficient OR protocols.\\
-\end{definition}
-
-\newpage
-
-\subsection{Properties of Expander Graphs}
-
-Expander graphs are a class of sparse graphs where any subset of its vertices remains well-connected to the rest of the graph, making them particularly useful in the design of network protocols.
-
-\begin{definition} [$\beta$-expander] \label{def:beta-expander} ~\cite[Def. 1]{10.1007/3-540-49543-6_1}
-    Formally, a graph $G = (V, E)$ is called a $\beta$-expander if, for every subset of vertices $S \subset V$ where $|S| \leq |V|/2$, the number of edges leaving $S$ (denoted by $\texttt{out}(S)$) satisfies:
-    
-    $$
-    |\texttt{out}(S)| \geq \beta \cdot |S|.
-    $$
-    
-    In other words, the number of edges connecting $S$ to its complement $V \setminus S$ is proportional to the size of $S$, so that that even small subsets of the graph are well-connected, as visualized in Fig.~\ref{fig:beta-expander}\\
-
-    \begin{figure}
-        \centering
-        \includegraphics[width=0.5\textwidth]{template/figures/Expander graph.png}
-        \caption{A graph $G = (V, E)$ is said to be a $\beta$-expander if the number of edges connecting any minority subset of vertices $S \subset V$ to its complement $V \setminus S$, denoted $|\texttt{out}(S)|$, is at least $\beta |S|$.}
-        \label{fig:beta-expander}
-    \end{figure}
-
-\end{definition}
-
-\begin{definition} [$\lambda$-absolute eiganvalue expander] \label{def:eiganvalue-expander}
-     An $r$-regular graph $G = (V, E)$ is called a $\lambda$-absolute eiganvalue expander if, $|\lambda_2|,|\lambda_3|,...,|\lambda_n| \leq \lambda$. Here, $|\lambda_1| \geq |\lambda_2| \geq ... \geq |\lambda_n|$ are the eiganvalues of the adjacency matrix $A$ of $G$.\\
-
-     In fact, iff $G$ is an $r$-regular $\beta$-expander, for some constant $\beta$, then it is also a $\lambda$-absolute eiganvalue expander where $\lambda = r - \frac{\beta^2}{2r}$ (from \textit{Cheeger's inequality}).
-\end{definition}
-
-\subsubsection{Random Walks} 
-    
-A \textit{random walk} on a graph is a process where, starting from an initial node, a ``walker'' moves to a neighboring node at each step according to some probability distribution over the neighbors of the current node. 
-
-\begin{definition} [Simple random walk] \label{def:simp-random-walk}
-    In a \textit{simple random walk} on a graph $G = (V, E)$, the walker starts at some vertex $v_0 \in V$. Let $\Gamma(v)$ denote the set of neighbors for each vertex $v \in V$. At each time step, the walker moves to a randomly chosen neighbor of the current vertex, where each neighbor is selected with equal probability. More formally, let $X_t$ denote the position of the walker at time $t$. The transition probability from vertex $v$ to vertex $u$ is given by:
-    
-    $$
-    P(X_{t+1} = u \mid X_t = v) =
-    \begin{cases}
-    \frac{1}{|\Gamma(v)|} & \text{if } (v, u) \in E, \\
-    0 & \text{otherwise}.
-    \end{cases}
-    $$
-    
-    Thus, at each step, the walker moves to one of the neighbors of the current vertex with equal probability.
-\end{definition}
-
-An important property is that a random walk on an expander graph rapidly converges to a uniform distribution, meaning that after a polylog number of steps (see Definition~\ref{def:bound-prob-distribution}), the probability of being at any given vertex becomes nearly uniform, regardless of the starting point.
-
-\begin{definition} [Stationary distribution] \label{stationary-distribution}
-    The \textit{stationary distribution} of a random walk is a probability distribution over the vertices such that if the walker is distributed according to this distribution at some time $t$, it will have the same distribution at time $t+1$. For a connected, non-bipartite graph, the random walk converges to a unique stationary distribution, and for regular graphs, this stationary distribution is uniform over all vertices.
-\end{definition}
-
-The rate of convergence to this stationary distribution in an expander graph is closely tied to the \textit{second-largest eigenvalue} of their adjacency matrix. 
-
-\begin{definition} [Second-largest eigenvalue] \label{def:second-largest-eig}
-    Let $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_n$ be the eigenvalues of the adjacency matrix of a $r$-regular graph. The largest eigenvalue $\lambda_1$ is equal to $r$, and the second-largest eigenvalue $\lambda_2$ (or the spectral gap $\lambda_1 - \lambda_2$) determines how quickly the random walk on the graph mixes. Specifically, the mixing time is inversely proportional to the spectral gap. A smaller value of $\lambda_2$ indicates faster mixing.
-
-For a strong expander, the second-largest eigenvalue $\lambda_2$ satisfies:
-
-$$
-\lambda_2 \leq 1 - \epsilon
-$$
-
-for some constant $\epsilon > 0$. This indicates that the graph has good expansion properties, meaning that the random walk mixes rapidly. In our protocol $\Pi_x$, we take advantage of these properties of $\beta$-expanders, which allows us to prove that the routing paths chosen for onions will sufficiently mix after a polylogarithmic number of steps.
-\end{definition}
-
-\begin{definition}[Probability Distribution of a Simple Random Walk] \label{def:bound-prob-distribution}
-Let $G = (V, E)$ be an $r$-regular $\beta$-expander graph with $|V| = n$. Let $P$ denote the transition matrix of a simple random walk on $G$, and let $h^{(t)} \in \mathbb{R}^n$ be the probability distribution vector after $t$ steps of the walk, starting from an initial distribution $h^{(0)}$. Then for any $t \geq 1$, the probability distribution vector satisfies:
-$$
-\| h^{(t)} - u \|_1 \leq \left(1 - \frac{\beta}{r}\right)^t,
-$$
-where $u = \frac{1}{n}(1, 1, \dots, 1)^T$ is the uniform distribution over $V$ and $\|\cdot\|_1$ denotes the total variation distance.
-\end{definition}
-
-
-% \begin{lemma} \label{lem:edge-expansion}
-% Let $G = (V, E)$ be an $r$-regular $\beta$-expander graph where each node has a self-loop. For any two subsets $S_1, S_2 \subseteq V$, the number of edges between $S_1$ and $S_2$ satisfies:
+% Let $\mathcal{M}(\sigma)$ represent the set of all messages in $\sigma$. It is defined as the multiset of all message pairs across all users' inputs, given by
 % $$
-% |E(S_1, S_2)| \geq \beta \cdot \min(|S_1|, |S_2|),
-% $$
-% even if $S_1$ and $S_2$ are not disjoint.
-% \end{lemma}
-
-% \begin{proof}[Proof of Lemma~\ref{lem:edge-expansion}]
-% For any subset $S \subseteq V$ with $|S| \leq \frac{|V|}{2}$, the number of edges leaving $S$ will be $\geq \beta |S|$. Now consider two subsets $S_1, S_2 \subseteq V$. Without loss of generality, assume $|S_1| \leq |S_2|$. There are two non-trivial cases to consider:\\
-
-% Case 1: $|S_1|, |S_2| \leq \frac{|V|}{2}$. By the edge expansion property, we have $|E(S_1, S_2)| \geq \beta \cdot \min(|S_1|, |S_2|)$.\\
-
-
-% Case 2: Either $|S_1| > \frac{|V|}{2}$ or $|S_2| > \frac{|V|}{2}$. Without loss of generality, assume $|S_1| > \frac{|V|}{2}$. Define the complement $S_1' = \overline{S_1}$, so $|S_1'| = |V| - |S_1| \leq \frac{|V|}{2}$.
-
-% Using the symmetry of edges in $G$:
-% $$
-% |E(S_1, S_2)| = |E(S_1', V \setminus S_2)|.
+% \mathcal{M}(\sigma_1, \dots, \sigma_N) = \bigcup_{i=1}^{N} \{ (m,j) \in \sigma_i \}.
 % $$
 
-% Now consider the sizes of $S_1'$ and $V \setminus S_2$. Since $|S_2| \geq |S_1|$, we have $|V \setminus S_2| \leq \frac{|V|}{2}$. Both $S_1'$ and $V \setminus S_2$ satisfy the edge expansion property:
-% $$
-% |E(S_1', V \setminus S_2)| \geq \beta \cdot \min(|S_1'|, |V \setminus S_2|).
-% $$
+% \subsection{Threat Model}
 
-% Finally, substitute back into the sizes of $S_1$ and $S_2$. The relationships $|S_1'| = |V| - |S_1|$ and $|V \setminus S_2| = |S_2|$ imply:
-% $$
-% |E(S_1, S_2)| \geq \beta \cdot \min(|S_1|, |S_2|),
-% $$
+% Let $\Pi$ be a protocol, and let $\sigma$ be a vector of inputs to $\Pi$. Given an adversary $\mathcal{A}$, the view $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma)$ of $\mathcal{A}$ consists of all the information observable by the adversary while participating in $\Pi$ on input $\sigma$, possibly with additional randomness used by the adversary to make its decisions. Given an adversary $\mathcal{A}$, the output $\mathsf{O}^{\Pi,\mathcal{A}}(\sigma) = (\mathsf{O}^{\Pi,\mathcal{A}}_1(\sigma), \dots, \mathsf{O}^{\Pi,\mathcal{A}}_N(\sigma))$ of $\Pi$ on input $\sigma$ is a vector of outputs for the $N$ parties.
 
-% For larger subsets, the bound trivially holds for \(\beta \cdot \min(|S_1|, |S_2|)\).
-% \end{proof}
+% We consider the following standard adversary models, listed in increasing order of capability:\\
+% \begin{itemize}
+%     \item \textbf{Network adversary.} A network adversary can observe the bits flowing over every link in the network. If data is encrypted in an idealized scenario, the only information that a network adversary has is the \textit{volume} of traffic flowing over edges in the network.)\\
+    
+%     \item \textbf{Passive adversary.} In addition to the capabilities of a network adversary, a passive adversary can monitor the internal states and operations of a constant fraction of the relays. The adversary selects which relays to monitor non-adaptively, meaning the choice is made before the protocol begins and remains fixed throughout execution. Importantly, we assume the passive adversary has full knowledge of the network topology to inform their selection of whom to monitor.\\
+    
+%     \item \textbf{Active adversary.} In addition to the capabilities of a passive adversary, an active adversary can corrupt the behavior of a constant fraction of the relays. While the selection of whom to corrupt remains non-adaptive (and may be informed by the network topology), the behavior of corrupted parties can be altered on the fly. This includes deviating arbitrarily from the protocol (e.g., dropping, delaying, or repeating onions). \\
+% \end{itemize}
 
+% \subsection{Privacy Definitions}
 
+% We define the security of a communications protocol as the difficulty for the adversary to infer who is communicating with whom (beyond what is leaked from captured messages). 
 
-\clearpage
+% \begin{definition} [Statistical privacy] \label{def:statistical-privacy}
+%     Let $\Sigma^*$ be the input set consisting of every input of the form
+%     $$
+%     \sigma = \{(m_1, \pi(1)), \dots, (m_N, \pi(N))\},
+%     $$
+%     where $m_1, \dots, m_N \in \mathcal{M}$ and $\pi : [N] \rightarrow [N]$ is any permutation function over the set $[N]$. A communications protocol $\Pi$ is statistically private from the adversaries in the class $\mathcal{A}$ if, for all $\mathcal{A} \in \mathcal{A}$ and for all $\sigma_0, \sigma_1 \in \Sigma^*$ that differ only on the honest parties' inputs and outputs, the adversary's views $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_0)$ and $\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_1)$ are statistically indistinguishable, i.e.,
+%     $$
+%     \Delta(\mathsf{V}^{\Pi,\mathcal{A}}(\sigma_0), \mathsf{V}^{\Pi,\mathcal{A}}(\sigma_1)) = \mathsf{negl}(\lambda),
+%     $$
+%     where $\lambda \in \mathbb{N}$ denotes the security parameter, and $\Delta(\cdot, \cdot)$ denotes the statistical distance (i.e., the total variation distance). Protocol $\Pi$ is perfectly secure if the statistical distance is 0.
+% \end{definition}
+
+% \begin{definition} [Distance between inputs] \label{def:distance-between-inputs} 
+%     The distance between two inputs $\sigma_0 = (\sigma_1, \dots, \sigma_N)$ and $\sigma_1 = (\sigma_1', \dots, \sigma_N')$, denoted $d(\sigma_0, \sigma_1)$, is given by
+%     $$
+%     d(\sigma_0, \sigma_1) \overset{\Delta}{=} \sum_{i=1}^{N} |\sigma_{i} \vartriangle \sigma_{i}'|,
+%     $$
+%     where $\vartriangle$ represents the symmetric difference between $\sigma_{i}$ and $\sigma_{i}'$.
+% \end{definition}
+
+% \begin{definition} [Neighboring inputs] \label{def:neighboring-inputs} 
+%     Two inputs $\sigma_0$ and $\sigma_1$ are neighboring if 
+%     $$
+%     d(\sigma_0, \sigma_1) \leq 1.
+%     $$
+% \end{definition}
+
+% \subsection{Performance Metrics}
+
+% \begin{definition} [Server load] \label{def:serverload}
+%     The server load of an OR protocol $\Pi$ is defined with respect to an input vector $\sigma$ and an adversary $\mathcal{A}$. It is the expected number of onions processed by a single party in a round.\\
+% \end{definition}
+
+% \begin{definition} [Latency] \label{def:latency}
+%     The latency of an OR protocol $\Pi$ is defined with respect to an input vector $\sigma$ and an adversary $\mathcal{A}$. It is the expected number of rounds in a protocol execution.
+% \end{definition}
+
+% \subsection{Properties of Expander Graphs}
+
+% Expander graphs are a class of sparse graphs where any subset of its vertices remains well-connected to the rest of the graph, making them particularly useful in the design of network protocols.
+
+% \begin{definition} [$\beta$-expander] \label{def:beta-expander} ~\cite[Def. 1]{10.1007/3-540-49543-6_1}
+%     Formally, a graph $G = (V, E)$ is called a $\beta$-expander if, for every subset of vertices $S \subset V$ where $|S| \leq |V|/2$, the number of edges leaving $S$ (denoted by $\texttt{out}(S)$) satisfies:
+    
+%     $$
+%     |\texttt{out}(S)| \geq \beta \cdot |S|.
+%     $$
+    
+%     In other words, the number of edges connecting $S$ to its complement $V \setminus S$ is proportional to the size of $S$, so that that even small subsets of the graph are well-connected.\\
+% \end{definition}
+
+% % \begin{definition} [$\lambda$-absolute eiganvalue expander] \label{def:eiganvalue-expander}
+% %      An $r$-regular graph $G = (V, E)$ is called a $\lambda$-absolute eiganvalue expander if, $|\lambda_2|,|\lambda_3|,...,|\lambda_n| \leq \lambda$. Here, $|\lambda_1| \geq |\lambda_2| \geq ... \geq |\lambda_n|$ are the eiganvalues of the adjacency matrix $A$ of $G$.\\
+
+% %      In fact, iff $G$ is an $r$-regular $\beta$-expander, for some constant $\beta$, then it is also a $\lambda$-absolute eiganvalue expander where $\lambda = r - \frac{\beta^2}{2r}$ (from \textit{Cheeger's inequality}).
+% % \end{definition}
+
+% \subsubsection{Random Walks} 
+    
+% A \textit{random walk} on a graph is a process where, starting from an initial node, a ``walker'' moves to a neighboring node at each step according to some probability distribution over the neighbors of the current node. 
+
+% \begin{definition} [Simple random walk] \label{def:simp-random-walk}
+%     In a \textit{simple random walk} on a graph $G = (V, E)$, the walker starts at some vertex $v_0 \in V$. Let $\Gamma(v)$ denote the set of neighbors for each vertex $v \in V$. At each time step, the walker moves to a randomly chosen neighbor of the current vertex, where each neighbor is selected with equal probability. More formally, let $X_t$ denote the position of the walker at time $t$. The transition probability from vertex $v$ to vertex $u$ is given by:
+    
+%     $$
+%     P(X_{t+1} = u \mid X_t = v) =
+%     \begin{cases}
+%     \frac{1}{|\Gamma(v)|} & \text{if } (v, u) \in E, \\
+%     0 & \text{otherwise}.
+%     \end{cases}
+%     $$
+    
+%     Thus, at each step, the walker moves to one of the neighbors of the current vertex with equal probability.
+% \end{definition}
+
+% \begin{definition} [Stationary distribution] \label{stationary-distribution}
+%     The \textit{stationary distribution} of a random walk is a probability distribution over the vertices such that if the walker is distributed according to this distribution at some time $t$, it will have the same distribution at time $t+1$. For a connected, non-bipartite graph, the random walk converges to a unique stationary distribution, and for regular graphs, this stationary distribution is uniform over all vertices.
+% \end{definition}
+
+% % \begin{definition} [Second-largest eigenvalue] \label{def:second-largest-eig}
+% %     Let $\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_n$ be the eigenvalues of the adjacency matrix of a $r$-regular graph. The largest eigenvalue $\lambda_1$ is equal to $r$, and the second-largest eigenvalue $\lambda_2$ (or the spectral gap $\lambda_1 - \lambda_2$) determines how quickly the random walk on the graph mixes. Specifically, the mixing time is inversely proportional to the spectral gap. A smaller value of $\lambda_2$ indicates faster mixing.
+
+% % For a strong expander, the second-largest eigenvalue $\lambda_2$ satisfies:
+
+% % $$
+% % \lambda_2 \leq 1 - \epsilon
+% % $$
+
+% % for some constant $\epsilon > 0$. This indicates that the graph has good expansion properties, meaning that the random walk mixes rapidly. In our protocol $\Pi_x$, we take advantage of these properties of $\beta$-expanders, which allows us to prove that the routing paths chosen for onions will sufficiently mix after a polylogarithmic number of steps.
+% % \end{definition}
+
+% % \begin{definition}[Probability Distribution of a Simple Random Walk] \label{def:bound-prob-distribution}
+% % Let $G = (V, E)$ be an $r$-regular $\beta$-expander graph with $|V| = n$. Let $P$ denote the transition matrix of a simple random walk on $G$, and let $h^{(t)} \in \mathbb{R}^n$ be the probability distribution vector after $t$ steps of the walk, starting from an initial distribution $h^{(0)}$. Then for any $t \geq 1$, the probability distribution vector satisfies:
+% % $$
+% % \| h^{(t)} - u \|_1 \leq \left(1 - \frac{\beta}{r}\right)^t,
+% % $$
+% % where $u = \frac{1}{n}(1, 1, \dots, 1)^T$ is the uniform distribution over $V$ and $\|\cdot\|_1$ denotes the total variation distance.
+% % \end{definition}
+
 
 
 \section{Our Protocol}
 
-As previously established, our problem setting consists of $N$ clients (users) and $n$ relays (mixnodes). Assume $N = O(\mathsf{poly}(\lambda))$, and $n = O(\frac{N}{log^2 \lambda})$. While each client has a direct connection to every relay, we model the mixnet of relays as an $r$-regular, $\beta$-expander graph, where $r > 1$. We can write $\beta = \Theta(1/r)$ \cite[Section 2.3]{Hoory2006}.\\
+As previously established, our problem setting consists of $N$ clients (users) and $n$ relays (nodes). Assume $N = O(\mathsf{poly}(\lambda))$, and $n = O(\frac{N}{log^2 \lambda})$. While each client has a direct connection to every relay, we model the network of relays as an $r$-regular, $\beta$-expander graph, where $r > 1$. We can write $\beta = \Theta(1/r)$ \cite[Section 2.3]{Hoory2006}.\\
 
-Each client begins with a single message they wish to send privately to another client. We assume that the set of intended recipients is a permutation of the senders, meaning that each client sends and receives exactly one message-bearing onion. At the start of the protocol, clients must download the current state of the network, which they use to construct a valid routing path of a fixed length $L + 1$ through the mixnet. To bootstrap a path, a client selects the first hop uniformly at random from the set of all relays. The remaining path is then constructed by performing a random walk of length $L$. Finally, the recipient is appended, resulting in a path of length $L + 1$ that traverses randomly through the mixnet and terminates at the intended recipient.\\
+Each client begins with a single message they wish to send privately to another client. We assume that the set of intended recipients is a permutation of the senders, meaning that each client sends and receives exactly one message-bearing onion. At the start of the protocol, clients must download the current state of the network, which they use to construct a valid routing path of a fixed length $L + 1$ through the network. To bootstrap a path, a client selects the first hop uniformly at random from the set of all relays. The remaining path is then constructed by performing a random walk of length $L$. Finally, the recipient is appended, resulting in a path of length $L + 1$ that traverses randomly through the network and terminates at the intended recipient.\\
 
-The client can then use this path to encrypt their message in successive layers. The innermost layer contains the message encrypted under the recipient’s public key, and each additional layer (added in reverse order of the path) specifies the next hop. Consequently, the innermost layer can only be received and decrypted by the recipient if all preceding layers are properly ``peeled'' by the mixnodes in the selected path.\\
+The client can then use this path to encrypt their message in successive layers. The innermost layer contains the message encrypted under the recipient’s public key, and each additional layer (added in reverse order of the path) specifies the next hop. Consequently, the innermost layer can only be received and decrypted by the recipient if all preceding layers are properly ``peeled'' by the nodes in the selected path.\\
 
 At the beginning of the first round, each client sends their formed onion to the first hop. In subsequent rounds, each relay decrypts the outermost layer and then forwards the peeled onion accordingly.\\
 
@@ -427,15 +338,9 @@ Let $e^t_{i,j}$ denote the number of onions routed form $i$ to $j$ at the end of
 $$
 \Big|e^t_{i,j} - \frac{N}{nr}\Big| \leq \sqrt{\frac{3N}{nr}(\log^c \lambda + \log n + \log r)}, \quad \forall c > 1.
 $$
-$$
-\Rightarrow e^t_{i,j} = \frac{N}{rn}\Big(1 \pm O(\sqrt{\frac{3nr}{N}(\log^c \lambda + \log n + \log r)} \; )\Big), \quad \forall c > 1.
-$$
 Now let $S^t_i = \sum_{j \in \mathcal{N}(i)} e^t_{i,j} = \sum_{j \in \mathcal{N}(i)} e^{t - 1}_{j,i}$ denote the server load at node $i$ in round $t$. Also applying lemma \ref{lem:chernoff-deviation}, with overwhelming probability in $\lambda$, for any $i \in [n]$ in any given round:
 $$
 \Big|S^t_i - \frac{N}{n}\Big| \leq \sqrt{\frac{3N}{n}(\log^d \lambda + \log n)}, \quad \forall d > 1.
-$$
-$$
-\Rightarrow S^t_i = \frac{N}{n}\Big(1 \pm O(\sqrt{\frac{3n}{N}(\log^d \lambda + \log n)} \; ) \Big), \quad \forall d > 1.
 $$
 Therefore with overwhelming probability:
 \begin{align*}
@@ -446,16 +351,16 @@ Therefore with overwhelming probability:
 \end{align*}
 
 \end{proof}
-Thus, for every round $t$ we can write:
-$$
-H^t = A \cdot \Bigl(1 \pm \delta\Bigr)
-$$
-with $\delta = O\Bigl(\frac{1}{\log^{b} \lambda}\Bigr)$, and 
+Let $A$ be the normalized adjacency matrix of $G$ (i.e., the transition matrix of a random walk), where:
 $$
 A_{i,j} = \begin{cases}
 \frac{1}{r}, & j \in \mathcal{N}(i),\\[1mm]
 0, & \text{otherwise.}
 \end{cases}
+$$
+Then for every round $t$ we can write:
+$$
+H^t = A \cdot \Bigl(1 \pm \delta\Bigr), \quad \text{ with $\delta = O\Bigl(\frac{1}{\log^{b} \lambda}\Bigr)$, and $b < \frac{1}{2}$}
 $$
 Define
 $$
@@ -465,32 +370,71 @@ Then we have:
 $$
 A^t \Bigl(1 - \delta\Bigr)^t \le E_t \le A^t \Bigl(1 + \delta\Bigr)^t.
 $$
-Now suppose that onion $O_1$ is generated at node $k$ and $O_2$ at node $k'$. Denote by $\mathbf{u}_k$ (respectively, $\mathbf{u}_{k'}$) the indicator vector with a $1$ in the $k$th (respectively, $k'$th) coordinate and $0$ elsewhere. Then
+Now suppose that onion $O_1$ is generated at node $k$ and $O_2$ at node $k'$. Define the initial probability vectors, $\mathbf{u}_k$ and $\mathbf{u}_k'$ respectively:
+$$
+\mathbf{u}_k =
+\begin{cases}
+    1, & \text{if $i = k$},\\
+    0, & \text{otherwise.}
+\end{cases}
+$$
+$$
+\mathbf{u}_k' =
+\begin{cases}
+    1, & \text{if $i = k'$},\\
+    0, & \text{otherwise.}
+\end{cases}
+$$
+Then
 $$
 \mathbf{h}^t(O_1) = E_t \mathbf{u}_k,\quad \mathbf{h}^t(O_2) = E_t \mathbf{u}_{k'}.
 $$
-Thus,
 $$
-\mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) = E_t \bigl( \mathbf{u}_k - \mathbf{u}_{k'} \bigr).
+\Rightarrow \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) = E_t \bigl( \mathbf{u}_k - \mathbf{u}_{k'} \bigr) \leq A^t \bigl( \mathbf{u}_k - \mathbf{u}_{k'} \bigr) (1 + \delta)^t
 $$
-Because the ideal random walk on an $r$-regular graph is symmetric, its stationary distribution is uniform. Moreover, writing $\mathbf{u}_k - \mathbf{u}_{k'}$ in the eigenbasis of $A$, the projection onto the first eigenvector (which corresponds to the stationary distribution) is 0. Consequently, if the eigenvalues of $A$ are
+Because the ideal random walk on an $r$-regular graph is symmetric, its stationary distribution is uniform. Moreover, writing $\mathbf{u}_k - \mathbf{u}_{k'}$ in the eigenbasis of $A$, the projection onto the first eigenvector (which corresponds to the stationary distribution) is 0. By Lemma \ref{lem:stochastic}, there exists some constant $\gamma < 1$ such that $(1 + \delta)\gamma < 1$ and:
 $$
-1 = \lambda_1 > \lambda_2 \ge \cdots \ge \lambda_n,
-$$
-then there exists some constant $\gamma$ such that $(1 + \delta)\gamma < 1$
-$$
-\bigl\| A^t (\mathbf{u}_k - \mathbf{u}_{k'}) \bigr\| \le \gamma^t \bigl\| \mathbf{u}_k - \mathbf{u}_{k'} \bigr\|.
+A^t (\mathbf{u}_k - \mathbf{u}_{k'}) \le \gamma^t \bigl| \mathbf{u}_k - \mathbf{u}_{k'} \bigr|.
 $$
 We obtain
 $$
-\bigl\| \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) \bigr\| \le \Bigl(1 + \delta\Bigr)^t\, \gamma^t\, \bigl\| \mathbf{u}_k - \mathbf{u}_{k'} \bigr\|.
+\bigl| \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) \bigr| \le \Bigl(1 + \delta\Bigr)^t\, \gamma^t\, \bigl| \mathbf{u}_k - \mathbf{u}_{k'} \bigr|.
 $$
 For $t = \log^2 \lambda$, 
 $$
-\bigl\| \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) \bigr\| = \text{negl}(\lambda).
+\bigl| \mathbf{h}^t(O_1) - \mathbf{h}^t(O_2) \bigr| = \text{negl}(\lambda).
 $$
 Therefore the adversary’s best estimates for the locations of $O_1$ and $O_2$ are statistically indistinguishable, and the protocol $\Pi_x$ is statistically private with respect to the network adversary.
 
+\end{proof}
+
+
+\begin{lemma} \label{lem:stochastic}
+Let $h = (h_1, \dots, h_n)^T$ be a stochastic vector representing a probability distribution, and let $A$ be the transition probability matrix of a random walk on an $r$-regular $\beta$-expander graph. For some constant $\gamma < 1$, and for all $t \geq 1$, the distribution after $t$ steps satisfies:
+$$
+A^t h \leq \frac{1}{n} \mathbf{I} + \gamma^t \mathbf{I},
+$$
+where $\mathbf{I}$ is the vector of all ones.
+\end{lemma}
+\begin{proof} [Proof for Lemma \ref{lem:stochastic}]
+
+$A$ has an eigenvector base, $v_1,\dots,v_n$ with eogenvalues $\gamma_1,\dots, \gamma_n$.
+
+Any vector $h$ can be written as
+$h=\sum c_1 v_i$
+
+$Ah= \sum c_i\gamma_1 v_i$
+
+If $h$ is stochastic, then $\gamma_1=1$
+
+So 
+
+$A^t h= 1/nI + \sum_{i\geq 2} c_i^t v_i$
+
+All $|\lambda_i| \leq \lambda_2< 1$
+
+
+    
 \end{proof}
 
 

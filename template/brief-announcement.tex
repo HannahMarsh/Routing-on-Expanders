@@ -1,0 +1,264 @@
+\newif \iftheory 
+
+\theorytrue %\theoryfalse
+
+\newif \ifblind
+
+\blindtrue \blindfalse
+
+\newcommand{\eli}[1]{\textcolor{blue}{[Eli: #1]}}
+\newcommand{\meg}[1]{\textcolor{red}{[Megumi: #1]}}
+\newcommand{\hannah}[1]{\textcolor{magenta}{[Hannah: #1]}}
+
+
+% ~~~~~ Modify inside here ~~~~~%
+\newcommand{\authorlist}{
+% Author 1
+Megumi Ando\iftheory\thanks{Computer Science Department, Tufts University, {\tt mando@cs.tufts.edu}}\fi
+\and 
+% Author 2
+Anna Lysyanskaya\iftheory\thanks{Computer Science Department, Brown University, {\tt anna@cs.brown.edu}}\fi
+\and 
+% Author 3
+Hannah Marsh\iftheory\thanks{Computer Science Department, Tufts University, {\tt hannah@cs.tufts.edu}}\fi
+\and
+% Author 3
+Eli Upfal\iftheory\thanks{Computer Science Department, Brown University, {\tt eli\_upfal@brown.edu}}\fi
+}
+
+\newcommand{\institutelist}{}
+
+
+\newcommand{\titlelist}{\iftheory\begin{bf}\fi
+% title
+Brief Announcement: Onion Routing on Sparse Distributed Networks
+\iftheory\end{bf}\fi}
+
+% Path to stylefiles
+\newcommand{\pathstyles}{./stylefiles}
+
+% Path to preambles
+\newcommand{\pathpreambles}{./preambles}
+
+% Path to bibfiles
+\newcommand{\pathbibs}{./bibfiles}
+
+% ~~~~~ Modify inside here ~~~~~%
+
+
+\iftheory
+% PLAIN ARTICLE
+\documentclass[11pt]{article}
+
+% LNCS (DEFAULT)
+\else
+%\documentclass[envcountsame, 10pt]{\pathstyles/llncs}
+\documentclass[runningheads,a4paper]{llncs}
+\ifblind 
+\institute{}
+\else
+\institute{\institutelist}
+\fi
+\fi
+
+\ifblind 
+\author{}
+\else
+\author{\authorlist} 
+\fi
+\pagestyle{plain}
+
+\title{\titlelist}
+
+% PREAMBLE
+\input{\pathpreambles/preamble}
+
+
+% ~~~ Begin document ~~~ %
+\begin{document}
+
+\maketitle
+\iftheory
+\thispagestyle{empty}
+\fi
+
+% ABSTRACT
+\vspace{-8mm}
+\begin{abstract}
+In distributed networks, an adversary with full network visibility may analyze traffic patterns to infer who is communicating with whom. Anonymous communication protocols provide a necessary defense by ensuring that any two observable communication patterns are statistically indistinguishable. One of the most practical and widely adopted methods for establishing anonymous communication channels is onion routing, where messages are encrypted in layers and relayed through multiple intermediaries. Ando, Lysyanskaya, and Upfal~\cite{ICALP:AndLysUpf18} showed that in a setting where each participant sends and receives exactly one fixed-length message, onion routing achieves anonymity against the network adversary when intermediaries are selected uniformly at random, and both server load and path length are polylogarithmic in the security parameter.
+
+This result holds when the network topology resembles a complete graph. We aim to extend this to the setting where each server is connected directly to only a few neighbors. In particular, we are interested in $r$-regular, $\beta$-expander graphs. We show that if each routing path is determined by an independent, fixed-length random walk, our protocol achieves anonymity against the network adversary, with both server load and path length remaining polylogarithmic in the security parameter.
+\iftheory
+\vfill
+%\noindent\textbf{Keywords:} 
+%Keyword, 
+%keyword, 
+%keyword.
+\fi
+\end{abstract}
+ 
+
+% ~~~ BODY ~~~ %
+\iftheory
+\newpage
+\thispagestyle{empty}
+\newpage
+\setcounter{page}{1}
+\fi
+
+\newcommand{\parties}{\mathsf{Parties}}
+\newcommand{\keygen}{\mathsf{KeyGen}}
+\newcommand{\formonion}{\mathsf{FormOnion}}
+\newcommand{\proconion}{\mathsf{PeelOnion}}
+\newcommand{\proconionhelper}{\mathsf{PeelOnionHelper}}
+\newcommand{\bruiseonion}{\mathsf{BruiseOnion}}
+\newcommand{\polylog}{\mathsf{polylog}}
+\newcommand{\early}{\mathsf{early}}
+\newcommand{\late}{\mathsf{late}}
+\newcommand{\recipient}{\mathsf{Recipient}}
+\newcommand{\Bad}{\mathsf{Bad}}
+
+
+\section{Introduction}
+
+Even when the content of a message is encrypted, an adversary monitoring all network traffic can trace the path of a fixed sequence of bits, thus revealing  who is communicating with whom. To address this, one approach is to wrap messages in multiple layers of encryption (i.e. forming an ``onion'') so that each intermediary hop removes a layer thus altering the appearance of bits sent on the next outgoing edge. However, timing and volume analysis can still allow an adversary to infer an onion's path, so to further obscure a message's trajectory through a network, relays can batch-process onions before forwarding them in a random order. The effectiveness of such a protocol can be evaluated by how well it prevents an adversary from distinguishing sender-receiver assignments. Formally, we say that a protocol achieves \textit{anonymity} if, for any neighboring input scenarios (for example Alice sends to Dave instead of Bob), the adversary’s distinguishing advantage is negligible in the security parameter $\lambda$. 
+
+Prior work by Ando, Lysyanskaya, and Upfal \cite{ICALP:AndLysUpf18} demonstrates that an onion routing protocol can efficiently achieve anonymity in a complete network. Their analysis depends on the assumption that each ``hop'' in an onion's path can be chosen uniformly at random from all network relays, which guarantees rapid and uniform mixing, provided that both the server load and round complexity are polylogarithmic in the security parameter. Since established, this result has served as a useful primitive for more sophisticated protocol designs \cite{ando2024bruisable, ando2019complexity} that are robust against even stronger adversarial models.
+
+In practice, however, many decentralized systems rely on sparse overlay topologies, where each node is connected to only a few neighbors. While anonymous communication protocols are widely applicable in these environments (such as peer-to-peer systems and blockchain infrastructures), the assumption of global connectivity no longer holds. Whether there exists an efficient onion routing protocol that guarantees sufficient mixing with locally constrained routing paths remains an open problem. Thus we aim to address this gap by extending the results of Ando, Lysyanskaya, and Upfal \cite{ICALP:AndLysUpf18} to a sparse network topology.
+
+In particular, we consider a well-studied class of graphs called \textit{expanders}, which exhibit strong connectivity properties despite being sparse and are therefore a common choice in the design of fault-tolerant distributed networks. We analyze a setting where each onion's routing path is determined by an independent random walk of fixed-length. We show that with the same asymptotic overhead as required in a complete network setting, onion routing achieves anonymity against an adversary capable of observing all traffic.
+
+\section{Problem Setting}
+
+We model a network $G = (V, E)$ of  $n = |V|$ servers, structured as an $r$-regular $\beta$-expander graph\footnote{Formally, a graph $G = (V, E)$ is a $\beta$-expander if the second-largest eigenvalue $\gamma_2$ of its normalized adjacency matrix $\hat{A}$ satisfies $\gamma_2(G) \leq \beta$.} for some constants $r > 1$ and $\beta < 1$. The role of these servers (also called relays) is to facilitate the synchronous batch-processing and shuffling of onions during the protocol execution. In addition to the servers, assume there are $N$ clients,\footnote{$N$ and all protocol parameters are polynomially bounded in the security parameter $\lambda$.} denoted $\mathcal{P} \triangleq \{P_1, P_2, \dots, P_N\}$, where each client wishes to send a fixed-length message anonymously to another client. 
+
+\paragraph{Inputs.} As consistent with standard notation, let $\mathcal{M}$ be the space of fixed-length messages, and let $\sigma = \{(m_1, \pi(1)), \dots, (m_N, \pi(N))\}$ be a vector where $m_i \in \mathcal{M}$ and $\pi: \mathcal{P} \to \mathcal{P}$ is any permutation. 
+
+\paragraph{Adversary model and views.} Define the \textit{network adversary} $\mathcal{A}$, as an entity capable of observing all traffic; their \textit{view} is denoted $V^{\Pi,\mathcal{A}}(1^\lambda, \sigma)$ and assuming ideal onion encryption (as established by Ando and Lysyanskaya~\cite{TCC:AndLys21}), it includes only the number of onions exchanged per edge per round between any pair of clients or servers. 
+
+\paragraph{Negligibility.} We say a function is \textit{negligible} (denoted $\mathsf{negl}(\lambda)$) if it decreases faster than the inverse of any polynomial in the security parameter $\lambda$. An event occurs \textit{with overwhelming probability} if it holds with probability $1 - \mathsf{negl}(\lambda)$.   
+
+\paragraph{Anonymity.} A protocol $\Pi$ is statistically (computationally) anonymous against a network adversary $\mathcal{A}$ if for any $\sigma_0, \sigma_1 \in \Sigma^*$ differing only in honest parties' inputs and outputs, the adversary’s views are statistically indistinguishable, i.e., $\Delta(V^{\Pi,\mathcal{A}}(\sigma_0), V^{\Pi,\mathcal{A}}(\sigma_1)) = \mathsf{negl}(\lambda)$, where $\lambda$ is the security parameter, and $\Delta(\cdot, \cdot)$ denotes statistical distance. 
+
+
+
+\section{Main Result}
+
+\paragraph{Our protocol.} A sender first constructs a routing path $R =(P_1, \dots, P_{L+1})$ by performing a random walk of length $L$ across $G$, starting from its entry node, before appending the shortest path to the recipient’s entry node. They then generate a sequence of onions $(O_1, \dots, O_{L+1})$ from a message $m$, the routing path $L$, public keys, and nonces using a public key infrastructure. Each relay $P_r \in V$ peels an onion $O_r$ with its secret key to reveal the next hop $P_{r+1}$, the next onion $O_{r+1}$, and a nonce. The recipient $P_{L+1}$ decrypts $O_{L+1}$ to obtain $m$. Messages are processed in synchronous rounds, with each server batch-processing onions in a random order to prevent correlation. The protocol progresses in global rounds, with onions reaching their destination by round $t+1$ if sent at round $t$.
+
+\begin{theorem} \label{clm:network}
+Our protocol achieves anonymity against the network adversary when $L = \Omega(\log^a \lambda)$ and $\frac{N}{n} = \Omega(\log^b \lambda)$in the security parameter $\lambda$  for constants $a, b > 1$.
+\end{theorem}
+
+\begin{proof} [Proof of Theorem~\ref{clm:network}]
+For every round $1 \leq t \leq L$ and onion $o \in (o_1,\dots,o_N)$, we represent the adversary’s belief about the location of $o$ as a probability distribution vector, $\mathbf{h}^t_i(o)$, which denotes the adversary's best guess of the probability that $o$ is at node $i$ by the end of round $t$. Initially, for every $i \in V$:
+$$
+\mathbf{h}^1_i(o) =
+\begin{cases}
+    1, & \text{if $i$ is the first relay in $o$'s routing path},\\
+    0, & \text{otherwise.}
+\end{cases}
+$$
+Let $e^t_{i,j}$ be the number of onions that node $i$ sends to $j$ at the end of round $t$. Define:
+$$
+H^t_{i,j} = \frac{e^t_{i,j}}{\sum_{k \in V} e^t_{i,k}} = \frac{\text{number of onions routed from $i$ to $j$ at round $t$}}{\text{total number of onions routed out of $i$ at round $t$}}
+$$
+such that the update rule for the adversary's belief of any onion $o$'s location after $t$ rounds follows a standard Markov process:
+$$
+\mathbf{h}^{t+1}(o) = H^t \mathbf{h}^{t}(o) = (H^t H^{t-1} \cdots H^1) \,\mathbf{h}^1(o)
+$$
+Let $\hat{A}$ be the normalized adjacency matrix of $G$ (i.e., the transition matrix of a random walk). From the bounds on transition probabilities established in Lemma \ref{lem:edge-transition-bound}, there must exist a constant $c > 0$ such that for every round $t$, we can write:
+$$
+(1 - \log^{-c} \lambda)^t \; \hat{A}^t \; \leq \; (H^t H^{t-1} \cdots H^1) \; \leq \; (1 + \log^{-c} \lambda)^t \; \hat{A}^t.
+$$
+Thus for every onion $o$ with initial distribution $\mathbf{h}^1(o)$, it follows that:
+$$
+\mathbf{h}^{t+1}(o) = (H^t H^{t-1} \cdots H^1) \,\mathbf{h}^1(o) \leq (1 + \log^{-c} \lambda)^t \; \hat{A}^t \; \mathbf{h}^1(o)
+$$
+Using the mixing properties of expander graphs as established in Lemma \ref{lem:stochastic}, we obtain the following bound on the adversary’s belief distribution:
+$$
+\frac{(1 - \log^{-c} \lambda)^t}{n} \mathbf{I} + ((1 - \log^{-c} \lambda)  \beta)^t \; \mathbf{I} \; \leq \;  \mathbf{h}^{t+1}(o)\;  \leq \; \frac{(1 + \delta)^t}{n} \mathbf{I} + ((1 + \log^{-c} \lambda)  \beta)^t \; \mathbf{I} 
+$$
+Now consider the difference in views between any two onions $o_1$ and $o_2$:
+\begin{align*}
+    |\mathbf{h}^{t+1}(o_1) - \mathbf{h}^{t+1}(o_2)| &\leq \frac{(1 + \log^{-c} \lambda)^t}{n} \mathbf{I} + ((1 + \log^{-c} \lambda)  \beta)^t \; \mathbf{I} - \frac{(1 - \log^{-c} \lambda)^t}{n} \mathbf{I} - ((1 - \log^{-c} \lambda)  \beta)^t \; \mathbf{I}\\
+    &\leq \Big((1 + \log^{-c} \lambda) \, \beta \,\Big)^t \; \mathbf{I}
+\end{align*}
+Since $\beta < 1$ is a constant, it follows that for sufficiently large $\lambda$, 
+$$
+(1 + \log^{-c} \lambda) \, \beta < 1 \quad \Rightarrow \quad ((1 + \log^{-c} \lambda) \, \beta \,)^{\Omega(\log^a \lambda)} = \mathsf{negl}(\lambda)
+$$
+Therefore after $t = \Omega(\log^a \lambda)$ rounds, $\mathbf{h}^{t+1}(o_1)$ and $\mathbf{h}^{t+1}(o_2)$ are indistinguishable. 
+
+\end{proof}
+
+
+% MORE PROOFS
+\subsection{Supplementary Proofs} \label{sec:proofs}
+\todo{move to theorem 1}
+\begin{lemma} \label{lem:edge-transition-bound}
+    Assume $\frac{N}{n} = \Omega(\log^b \lambda)$ for some $b > 1$. Let $e^t_{i,j}$ denote the number of onions routed from $i$ to $j$ at the end of round $t$. It follows that there exists a constant $c > 0$ such that with overwhelming probability in $\lambda$, for every edge $(i,j)$ and every round $t > 0$:
+    $$
+    \frac{1}{r}\left(1 - \frac{2}{\log^c \lambda}\right) \leq\frac{e^t_{i,j}}{\sum_{k \in \mathcal{N}(i)} e^{t}_{i,k}} \leq \frac{1}{r}\left(1 + \frac{2}{\log^c \lambda}\right)
+    $$
+\end{lemma}
+\begin{proof}[Proof of Lemma \ref{lem:edge-transition-bound}]
+We can bound:
+\begin{align*}
+    \frac{1}{r}\left(\frac{\min_{(i,j) \in E} (e^t_{i,j})}{\max_{(i,j) \in E} (e^t_{i,j})}\right) \leq \frac{e^t_{i,j}}{\sum_{(i,k) \in E} e^{t}_{i,k}} \leq \frac{1}{r}\left(\frac{\max_{(i,j) \in E} (e^t_{i,j})}{\min_{(i,j) \in E} (e^t_{i,j})}\right)
+\end{align*}
+Since $G = (V,E)$ is $r$–regular, the number of paths of length $t$ starting at any given node is exactly $r^t$. It follows that since the initial distribution of onions is uniform, after $t > 0$ steps, the distribution of onions across all edges is also uniform. 
+
+From Chernoff bounds~\cite[Cor.~4.6]{MU05}, for all $0 < \delta < 1$:
+$$
+\Pr\left(|e^t_{i,j} - \frac{N}{rn}| \geq \delta \cdot \frac{N}{rn} \right) \leq 2 \exp(-\frac{\delta^2 \cdot N}{3rn}).
+$$
+Applying a union bound over all $rn$ outcomes, and substituting $\frac{N}{rn} = \Omega(\log^{b} \lambda)$:
+$$
+\Pr\left(\exists (i,j) \in E: |e^t_{i,j} - \frac{N}{rn}| \geq \delta \cdot \frac{N}{rn} \right) \leq 2 \exp(\log rn -\Omega(\delta^2\log^{b} \lambda)) = \exp(-\Omega(\delta^2\log^{b} \lambda)).
+$$
+Let $\delta = \log^{-c} \lambda$ for any $c$ that satisfies $0 < c < \frac{b - 1}{2}$. Then $\exp(-\Omega(\delta^2\log^{b} \lambda)) \, = \, \exp(-\Omega(\log^{b - 2c} \lambda))$. Since $b - 2c > 1$, this is negligible in $\lambda$.
+Therefore for every $(i,j) \in E$, with overwhelming probability in $\lambda$:
+$$
+\min_{(i,j) \in E} (e^t_{i,j}) > \frac{N}{rn}\left(1 - \frac{1}{\log^c \lambda}\right), \quad\max_{(i,j) \in E} (e^t_{i,j}) < \frac{N}{rn}\left(1 + \frac{1}{\log^c \lambda}\right)
+$$
+Therefore the fraction of onions any node sends over any edge (with expected value $\frac{1}{r}$) can be bound by:
+$$
+\frac{1}{r}\left(\frac{1 - \frac{1}{\log^c \lambda}}{1 + \frac{1}{\log^c \lambda}}\right) \leq \frac{e^t_{i,j}}{\sum_{(i,k) \in E} e^{t}_{i,k}} \leq \frac{1}{r}\left(\frac{1 + \frac{1}{\log^c \lambda}}{1 - \frac{1}{\log^c \lambda}}\right)
+$$
+which simplifies to:
+$$
+\frac{1}{r}\left(1 - \frac{2}{\log^c \lambda}\right) \leq\frac{e^t_{i,j}}{\sum_{k \in \mathcal{N}(i)} e^{t}_{i,k}} \leq \frac{1}{r}\left(1 + \frac{2}{\log^c \lambda}\right)
+$$
+\end{proof}
+
+
+\begin{lemma} \label{lem:stochastic}
+Let $\hat{A}$ be the transition probability matrix of a random walk on an $r$-regular $\beta$-expander graph, and let $\mathbf{h}$ be any initial probability vector. If $r \geq 2$, then for all $t \geq 1$, the distribution after $t$ steps satisfies:
+$$
+\hat{A}^t \; \mathbf{h} \leq \frac{1}{n} \mathbf{I} + \beta^t \mathbf{I},
+$$
+where $\mathbf{I}$ is the vector of all ones.
+\end{lemma}
+\begin{proof} [Proof for Lemma \ref{lem:stochastic}]
+This is a reformulation of a standard result on the convergence of random walks on $r$-regular $\beta$-expander graphs \cite[Theorem 3.2]{Hoory2006}, which states that if $\beta < 1$, then after $t$ steps, $\|\hat{A}^t \; \mathbf{h} - \frac{1}{n} \mathbf{I}\|_1 \leq \sqrt{n} \; \beta^t$. 
+\end{proof}
+
+\section{Conclusion \& Future Directions}
+
+By modeling routing paths as independent random walks, we demonstrated that with requiring no increase in path length or server load (as compared to prior results on a complete network), the adversary’s ability to distinguish sender-receiver pairs remains negligible. 
+
+An important direction for future work is extending our analysis to account for a \textit{passive adversary}, which is capable of non-adaptively monitoring a constant fraction of the servers and observing their internal states, meaning that no mixing occurs at the compromised servers. 
+
+Addressing these questions would contribute to a more complete understanding of how anonymity can be preserved in sparse distributed networks.
+
+% ~~~ REFERENCES ~~~ %
+%\bibliographystyle{plain}
+%\bibliographystyle{is-alpha}
+\bibliographystyle{stylefiles/alpha-short}
+\bibliography{template/bibfiles/abbrev3,template/bibfiles/crypto,template/bibfiles/anon,template/bibfiles/refs} 
+
+\appendix 
+
+\end{document}
